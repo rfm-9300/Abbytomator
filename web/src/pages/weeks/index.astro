@@ -1,0 +1,87 @@
+---
+import Dashboard from "../../layouts/Dashboard.astro";
+---
+
+<Dashboard
+  title="Weeks"
+  current="weeks"
+  description="One snapshot per week. Import Meta CSV, write the client letter, download the PDF."
+>
+  <div class="stack">
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">New week</h2>
+    </div>
+    <form class="form panel__body" id="create-week">
+      <div class="form__grid">
+        <div class="form__row">
+          <label class="lbl" for="period_end">Week ending</label>
+          <input class="inp" id="period_end" name="period_end" type="date" required />
+        </div>
+      </div>
+      <button class="btn btn--primary" type="submit">Open week</button>
+    </form>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">All weeks</h2></div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="weeks-table">
+        <thead>
+          <tr>
+            <th>Week ending</th>
+            <th>Updated until</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="empty empty--weeks" id="weeks-empty" hidden>
+      <p class="empty__title">No weeks yet</p>
+      <p class="empty__desc">Create a week ending date to start reporting.</p>
+    </div>
+  </section>
+  </div>
+</Dashboard>
+
+<script>
+  import { api, type Week } from "../../lib/api";
+
+  const tbody = document.querySelector("#weeks-table tbody") as HTMLTableSectionElement;
+  const empty = document.getElementById("weeks-empty") as HTMLElement;
+  const form = document.getElementById("create-week") as HTMLFormElement;
+
+  async function load() {
+    const { weeks } = await api<{ weeks: Week[] }>("/api/weeks");
+    empty.hidden = weeks.length > 0;
+    tbody.innerHTML = weeks
+      .map(
+        (week) => `
+      <tr data-href="/weeks/detail?id=${week.id}">
+        <td class="name"><a href="/weeks/detail?id=${week.id}">${week.period_end}</a></td>
+        <td class="muted">${week.updated_until || "—"}</td>
+        <td><a class="btn btn--ghost btn--sm" href="/weeks/detail?id=${week.id}">Open</a></td>
+      </tr>`
+      )
+      .join("");
+    document.querySelectorAll("tr[data-href]").forEach((row) => {
+      row.addEventListener("click", (event) => {
+        if ((event.target as HTMLElement).closest("a")) return;
+        const href = row.getAttribute("data-href");
+        if (href) location.href = href;
+      });
+    });
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const period_end = (form.elements.namedItem("period_end") as HTMLInputElement).value;
+    const week = await api<Week>("/api/weeks", {
+      method: "POST",
+      body: JSON.stringify({ period_end }),
+    });
+    location.href = `/weeks/detail?id=${week.id}`;
+  });
+
+  load();
+</script>

@@ -1,0 +1,99 @@
+---
+import Dashboard from "../layouts/Dashboard.astro";
+---
+
+<Dashboard
+  title="Monthly presentation"
+  current="monthly"
+  description="Reads every weekly report in the month and builds a meeting PDF."
+>
+  <section class="panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Month</h2>
+      <button class="btn btn--primary btn--sm" id="download" type="button">Download presentation</button>
+    </div>
+    <div class="panel__body">
+      <form class="form" id="month-form">
+        <div class="form__grid">
+          <div class="form__row">
+            <label class="lbl" for="year">Year</label>
+            <input class="inp" id="year" name="year" type="number" min="2020" required />
+          </div>
+          <div class="form__row">
+            <label class="lbl" for="month">Month</label>
+            <input class="inp" id="month" name="month" type="number" min="1" max="12" required />
+          </div>
+        </div>
+      </form>
+      <div class="kpis" id="kpis" hidden>
+        <div class="kpi"><p class="kpi__label">Spend</p><p class="kpi__value" data-kpi="spend">—</p></div>
+        <div class="kpi"><p class="kpi__label">Tix sold</p><p class="kpi__value" data-kpi="tix">—</p></div>
+        <div class="kpi"><p class="kpi__label">CPP</p><p class="kpi__value" data-kpi="cpp">—</p></div>
+        <div class="kpi"><p class="kpi__label">Weeks</p><p class="kpi__value" data-kpi="weeks">—</p></div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="month-table">
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th class="num">Spend</th>
+              <th class="num">Tix sold</th>
+              <th class="num">CPP</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</Dashboard>
+
+<script>
+  import { api, download } from "../lib/api";
+  import { money, whole } from "../lib/format";
+
+  const year = document.getElementById("year") as HTMLInputElement;
+  const month = document.getElementById("month") as HTMLInputElement;
+  const kpis = document.getElementById("kpis") as HTMLElement;
+  const tbody = document.querySelector("#month-table tbody") as HTMLTableSectionElement;
+  const now = new Date();
+  year.value = String(now.getFullYear());
+  month.value = String(now.getMonth() + 1);
+
+  type Monthly = {
+    year: number;
+    month: number;
+    weeks: { week: { id: number; period_end: string; updated_until: string | null }; totals: { amount_spent: number; tix_sold: number; cpp: number | null } }[];
+    totals: { amount_spent: number; tix_sold: number; cpp: number | null };
+  };
+
+  async function load() {
+    const data = await api<Monthly>(`/api/monthly?year=${year.value}&month=${month.value}`);
+    kpis.hidden = false;
+    kpis.querySelector('[data-kpi="spend"]')!.textContent = money(data.totals.amount_spent);
+    kpis.querySelector('[data-kpi="tix"]')!.textContent = whole(data.totals.tix_sold);
+    kpis.querySelector('[data-kpi="cpp"]')!.textContent = money(data.totals.cpp);
+    kpis.querySelector('[data-kpi="weeks"]')!.textContent = String(data.weeks.length);
+    tbody.innerHTML = data.weeks
+      .map(
+        (item) => `
+      <tr data-href="/weeks/detail?id=${item.week.id}">
+        <td class="name"><a href="/weeks/detail?id=${item.week.id}">${item.week.updated_until || item.week.period_end}</a></td>
+        <td class="num">${money(item.totals.amount_spent)}</td>
+        <td class="num">${whole(item.totals.tix_sold)}</td>
+        <td class="num">${money(item.totals.cpp)}</td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  year.addEventListener("change", load);
+  month.addEventListener("change", load);
+  document.getElementById("download")!.addEventListener("click", async () => {
+    await download(
+      `/api/monthly/pdf?year=${year.value}&month=${month.value}`,
+      `monthly-stuart-mitchell-${year.value}-${String(month.value).padStart(2, "0")}.pdf`
+    );
+  });
+  load();
+</script>

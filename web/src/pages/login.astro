@@ -1,0 +1,51 @@
+---
+import Dashboard from "../layouts/Dashboard.astro";
+---
+
+<Dashboard title="Sign in" current="login">
+  <div class="login">
+    <section class="panel">
+      <div class="panel__head">
+        <h1 class="panel__title">Abbitomator</h1>
+      </div>
+      <form class="form panel__body" id="login-form">
+        <p class="hint">Sign in with the dashboard credentials from `.env`.</p>
+        <div class="form__row">
+          <label class="lbl" for="user">User</label>
+          <input class="inp" id="user" name="user" autocomplete="username" required />
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="password">Password</label>
+          <input class="inp" id="password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <p class="banner banner--bad" id="login-error" hidden></p>
+        <button class="btn btn--primary" type="submit">Open dashboard</button>
+      </form>
+    </section>
+  </div>
+</Dashboard>
+
+<script>
+  import { api, hasAuth, setAuth } from "../lib/api";
+
+  if (hasAuth()) {
+    location.replace("/tracker/");
+  }
+
+  const form = document.getElementById("login-form") as HTMLFormElement;
+  const error = document.getElementById("login-error") as HTMLElement;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const user = String(data.get("user") || "");
+    const password = String(data.get("password") || "");
+    setAuth(user, password);
+    try {
+      await api("/api/me");
+      location.replace("/tracker/");
+    } catch (err) {
+      error.hidden = false;
+      error.textContent = "Could not sign in. Check DASHBOARD_USER and DASHBOARD_PASSWORD.";
+    }
+  });
+</script>

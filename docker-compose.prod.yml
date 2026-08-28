@@ -1,0 +1,41 @@
+services:
+  web:
+    image: ghcr.io/rfm-9300/abbitomator:${TAG:-latest}
+    container_name: abbitomator-web
+    env_file:
+      - path: .env
+        format: raw
+    environment:
+      DATA_DIR: /data
+      WEB_DIST: /app/web_dist
+      APP_ROOT: /app
+      SEED_IF_EMPTY: "0"
+    volumes:
+      - abbitomator_data:/data
+    restart: always
+    networks:
+      - default
+      - web_proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  abbitomator_data:
+
+networks:
+  web_proxy:
+    external: true

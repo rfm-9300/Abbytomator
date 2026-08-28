@@ -1,0 +1,13 @@
+.git
+.venv
+api/.venv
+web/node_modules
+web/dist
+web/.astro
+data
+samples
+**/.DS_Store
+**/__pycache__
+**/.pytest_cache
+.env
+*.db

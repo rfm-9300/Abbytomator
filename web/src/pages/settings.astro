@@ -1,0 +1,50 @@
+---
+import Dashboard from "../layouts/Dashboard.astro";
+---
+
+<Dashboard title="Settings" current="settings" description="Client label and currency for PDFs and the overview.">
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">Client</h2></div>
+    <form class="form panel__body" id="settings-form">
+      <div class="form__grid">
+        <div class="form__row">
+          <label class="lbl" for="name">Name</label>
+          <input class="inp" id="name" name="name" required />
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="currency">Currency</label>
+          <input class="inp" id="currency" name="currency" maxlength="3" required />
+        </div>
+      </div>
+      <p class="banner banner--ok" id="saved" hidden>Saved.</p>
+      <button class="btn btn--primary" type="submit">Save</button>
+    </form>
+  </section>
+</Dashboard>
+
+<script>
+  import { api } from "../lib/api";
+
+  const form = document.getElementById("settings-form") as HTMLFormElement;
+  const saved = document.getElementById("saved") as HTMLElement;
+
+  async function load() {
+    const client = await api<{ name: string; currency: string }>("/api/client");
+    (form.elements.namedItem("name") as HTMLInputElement).value = client.name;
+    (form.elements.namedItem("currency") as HTMLInputElement).value = client.currency;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await api("/api/client", {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: (form.elements.namedItem("name") as HTMLInputElement).value,
+        currency: (form.elements.namedItem("currency") as HTMLInputElement).value,
+      }),
+    });
+    saved.hidden = false;
+  });
+
+  load();
+</script>

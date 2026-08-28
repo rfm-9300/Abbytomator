@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.venv/
+api/.venv/
+web/node_modules/
+web/dist/
+data/
+samples/*
+!samples/README.md
+!samples/LAYOUT.md
+__pycache__/
+*.pyc
+.pytest_cache/
+.astro/
+*.db
+.python-version

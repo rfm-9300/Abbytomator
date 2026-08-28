@@ -1,0 +1,236 @@
+---
+import Dashboard from "../layouts/Dashboard.astro";
+---
+
+<Dashboard
+  title="Report Overview"
+  current="overview"
+  description="Import the Meta Ads Manager CSV here. Then type Tix Sold. CPP updates as you go."
+>
+  <div class="row row--wrap hero-actions">
+    <label class="lbl" for="week-select">Week</label>
+    <select class="sel" id="week-select"></select>
+    <a class="btn btn--ghost btn--sm" id="open-week" href="/weeks">Week notes</a>
+  </div>
+  <div class="stack">
+  <section class="panel" id="import-panel">
+    <div class="panel__head">
+      <h2 class="panel__title">Import Meta report</h2>
+    </div>
+    <form class="form panel__body" id="import-form">
+      <p class="hint">CSV columns: Platform (Column 1), Campaign, status, amount spent, clicks, CTR. Tix Sold already entered is kept.</p>
+      <div class="row row--wrap">
+        <label class="file">
+          <input class="file__input" type="file" name="file" accept=".csv,.txt,text/csv" required />
+          <span class="file__ui">
+            <span class="file__btn">Choose CSV</span>
+            <span class="file__name" data-file-name>No file chosen</span>
+          </span>
+        </label>
+        <button class="btn btn--primary" type="submit">Import</button>
+      </div>
+    </form>
+  </section>
+  <p class="banner banner--ok" id="overview-ok" hidden></p>
+  <div class="kpis" id="kpis" hidden>
+    <div class="kpi"><p class="kpi__label">Spend</p><p class="kpi__value" data-kpi="spend">—</p></div>
+    <div class="kpi"><p class="kpi__label">Tix sold</p><p class="kpi__value" data-kpi="tix">—</p></div>
+    <div class="kpi"><p class="kpi__label">CPP</p><p class="kpi__value" data-kpi="cpp">—</p></div>
+    <div class="kpi"><p class="kpi__label">Clicks</p><p class="kpi__value" data-kpi="clicks">—</p></div>
+  </div>
+  <p class="banner banner--bad" id="overview-error" hidden></p>
+  <section class="panel">
+    <div class="tbl-wrap">
+      <table class="tbl" id="overview-table">
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Campaign</th>
+            <th>Status</th>
+            <th class="num">Amount spent</th>
+            <th class="num">Clicks</th>
+            <th class="num">CPC</th>
+            <th class="num">CTR</th>
+            <th class="num">Tix sold</th>
+            <th class="num">CPP</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="empty empty--overview" id="overview-empty" hidden>
+      <p class="empty__title">No week selected</p>
+      <p class="empty__desc">Create a week and import a Meta CSV.</p>
+    </div>
+  </section>
+  </div>
+</Dashboard>
+
+<script>
+  import { api, type Overview, type Week } from "../lib/api";
+  import { money, percent, whole, escapeHtml } from "../lib/format";
+
+  const weekSelect = document.getElementById("week-select") as HTMLSelectElement;
+  const openWeek = document.getElementById("open-week") as HTMLAnchorElement;
+  const tbody = document.querySelector("#overview-table tbody") as HTMLTableSectionElement;
+  const empty = document.getElementById("overview-empty") as HTMLElement;
+  const kpis = document.getElementById("kpis") as HTMLElement;
+  const error = document.getElementById("overview-error") as HTMLElement;
+  const ok = document.getElementById("overview-ok") as HTMLElement;
+  const importForm = document.getElementById("import-form") as HTMLFormElement;
+  const params = new URLSearchParams(location.search);
+  let currentWeekId: number | null = null;
+
+  function statusPill(status: string): string {
+    return status === "live" ? `<span class="pill pill--ok">Live</span>` : `<span class="pill">Off</span>`;
+  }
+
+  function render(overview: Overview) {
+    kpis.hidden = !overview.week;
+    empty.hidden = Boolean(overview.week);
+    if (!overview.week) {
+      tbody.innerHTML = "";
+      return;
+    }
+    kpis.querySelector('[data-kpi="spend"]')!.textContent = money(overview.totals.amount_spent);
+    kpis.querySelector('[data-kpi="tix"]')!.textContent = whole(overview.totals.tix_sold);
+    kpis.querySelector('[data-kpi="cpp"]')!.textContent = money(overview.totals.cpp);
+    kpis.querySelector('[data-kpi="clicks"]')!.textContent = whole(overview.totals.clicks);
+
+    const parts: string[] = [];
+    for (const group of overview.groups) {
+      if (group.campaigns.length > 1) {
+        parts.push(`
+        <tr class="tbl__row--group">
+          <td class="name" colspan="3">${escapeHtml(group.event_label)}</td>
+          <td class="num">${money(group.totals.amount_spent)}</td>
+          <td class="num">${whole(group.totals.clicks)}</td>
+          <td class="num">${money(group.totals.cpc)}</td>
+          <td></td>
+          <td class="num">${whole(group.totals.tix_sold)}</td>
+          <td class="num">${money(group.totals.cpp)}</td>
+        </tr>`);
+      }
+      for (const campaign of group.campaigns) {
+        const hasCities = campaign.locations.length > 0;
+        parts.push(`
+          <tr>
+            <td class="muted">${escapeHtml(campaign.platform)}</td>
+            <td class="name">${escapeHtml(campaign.name)}</td>
+            <td>${statusPill(campaign.status)}</td>
+            <td class="num">${money(campaign.amount_spent)}</td>
+            <td class="num">${whole(campaign.clicks ?? 0)}</td>
+            <td class="num">${money(campaign.cpc)}</td>
+            <td class="num">${percent(campaign.ctr)}</td>
+            <td class="num">
+              ${
+                hasCities
+                  ? whole(campaign.tix_sold ?? 0)
+                  : `<input class="inp inp--cell" type="number" min="0" step="1" value="${campaign.tix_sold ?? 0}" data-tix-campaign="${campaign.id}">`
+              }
+            </td>
+            <td class="num">${money(campaign.cpp)}</td>
+          </tr>`);
+        for (const loc of campaign.locations) {
+          parts.push(`
+            <tr class="tbl__row--city">
+              <td></td>
+              <td class="name" colspan="2">${escapeHtml(loc.name)}</td>
+              <td class="num">${money(loc.amount_spent)}</td>
+              <td colspan="3"></td>
+              <td class="num">
+                <input class="inp inp--cell" type="number" min="0" step="1" value="${loc.tix_sold ?? 0}" data-tix-location="${loc.id}">
+              </td>
+              <td class="num">${money(loc.cpp)}</td>
+            </tr>`);
+        }
+      }
+    }
+    parts.push(`
+      <tr class="tbl__row--total">
+        <td class="name" colspan="3">Total</td>
+        <td class="num">${money(overview.totals.amount_spent)}</td>
+        <td class="num">${whole(overview.totals.clicks)}</td>
+        <td class="num">${money(overview.totals.cpc)}</td>
+        <td></td>
+        <td class="num">${whole(overview.totals.tix_sold)}</td>
+        <td class="num">${money(overview.totals.cpp)}</td>
+      </tr>`);
+    tbody.innerHTML = parts.join("");
+
+    tbody.querySelectorAll<HTMLInputElement>("[data-tix-campaign]").forEach((input) => {
+      input.addEventListener("change", async () => {
+        if (!overview.week) return;
+        await api(`/api/weeks/${overview.week.id}/campaigns/${input.dataset.tixCampaign}`, {
+          method: "PATCH",
+          body: JSON.stringify({ tix_sold: Number(input.value) || 0 }),
+        });
+        await loadOverview(overview.week.id);
+      });
+    });
+    tbody.querySelectorAll<HTMLInputElement>("[data-tix-location]").forEach((input) => {
+      input.addEventListener("change", async () => {
+        if (!overview.week) return;
+        await api(`/api/weeks/${overview.week.id}/locations/${input.dataset.tixLocation}`, {
+          method: "PATCH",
+          body: JSON.stringify({ tix_sold: Number(input.value) || 0 }),
+        });
+        await loadOverview(overview.week.id);
+      });
+    });
+  }
+
+  async function loadOverview(weekId?: number) {
+    const query = weekId ? `?week_id=${weekId}` : "";
+    const overview = await api<Overview>(`/api/overview${query}`);
+    render(overview);
+    if (overview.week) {
+      currentWeekId = overview.week.id;
+      weekSelect.value = String(overview.week.id);
+      openWeek.href = `/weeks/detail?id=${overview.week.id}`;
+    } else {
+      currentWeekId = null;
+    }
+  }
+
+  importForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    ok.hidden = true;
+    if (!currentWeekId) {
+      error.hidden = false;
+      error.textContent = "Create a week first (Weeks in the top bar).";
+      return;
+    }
+    const file = (importForm.elements.namedItem("file") as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const body = new FormData();
+    body.append("file", file);
+    const result = await api<{ campaigns_upserted: number }>(`/api/weeks/${currentWeekId}/import`, {
+      method: "POST",
+      body,
+    });
+    ok.hidden = false;
+    ok.textContent = `Imported ${result.campaigns_upserted} campaigns from Meta.`;
+    await loadOverview(currentWeekId);
+  });
+
+  async function boot() {
+    const { weeks } = await api<{ weeks: Week[] }>("/api/weeks");
+    weekSelect.innerHTML = weeks
+      .map((week) => `<option value="${week.id}">${week.updated_until || week.period_end}</option>`)
+      .join("");
+    const requested = Number(params.get("week") || "");
+    await loadOverview(requested || undefined);
+  }
+
+  weekSelect.addEventListener("change", () => {
+    const id = Number(weekSelect.value);
+    history.replaceState(null, "", id ? `/overview?week=${id}` : "/overview");
+    loadOverview(id);
+  });
+
+  boot().catch((err) => {
+    error.hidden = false;
+    error.textContent = String(err);
+  });
+</script>

@@ -1,0 +1,91 @@
+---
+interface Props {
+  title: string;
+  current: string;
+  description?: string;
+}
+
+const { title, current, description } = Astro.props;
+const nav = [
+  { href: "/tracker", id: "tracker", label: "Tracker" },
+  { href: "/overview", id: "overview", label: "Overview" },
+  { href: "/weeks", id: "weeks", label: "Weeks" },
+  { href: "/monthly", id: "monthly", label: "Monthly" },
+  { href: "/settings", id: "settings", label: "Settings" },
+];
+const wide = current === "overview" || current === "monthly";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Abbitomator</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/theme.js" is:inline></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <header class="topbar">
+      <a class="brand" href="/tracker">
+        <span class="brand__mark" aria-hidden="true">AB</span>
+        <span class="brand__text">
+          <span class="brand__name">Abbitomator</span>
+          <span class="brand__sub">Stuart Mitchell reporting</span>
+        </span>
+      </a>
+      <div class="topbar__actions">
+        {
+          current !== "login" && (
+            <nav class="topbar__nav" aria-label="Main">
+              {nav.map((item) => (
+                <a
+                  class="btn btn--ghost btn--sm"
+                  href={item.href}
+                  aria-current={current === item.id ? "page" : undefined}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          )
+        }
+        <button class="iconbtn iconbtn--theme" id="btn-theme" type="button" aria-label="Dark theme" aria-pressed="false">
+          <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5z"></path>
+          </svg>
+          <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.2 6.2 4.8 4.8M19.2 19.2l-1.4-1.4M6.2 17.8 4.8 19.2M19.2 4.8l-1.4 1.4"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <main class:list={["view", { "view--wide": wide }]} id="content">
+      {
+        current !== "login" && (
+          <div class="view__hero">
+            <h1 class="view__title">{title}</h1>
+            {description && <p class="view__desc">{description}</p>}
+          </div>
+        )
+      }
+      <slot />
+    </main>
+    <script>
+      import { hasAuth } from "../lib/api";
+      const onLogin = location.pathname === "/login" || location.pathname.startsWith("/login/");
+      if (!hasAuth() && !onLogin) {
+        location.replace("/login/");
+      }
+    </script>
+  </body>
+</html>

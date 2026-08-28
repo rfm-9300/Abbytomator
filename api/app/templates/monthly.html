@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Monthly presentation — {{ client_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 landscape; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Nunito, sans-serif; color: #23263b; font-size: 12px; margin: 0; }
+    h1, h2 { font-family: Outfit, sans-serif; margin: 0; }
+    .page { page-break-after: always; min-height: 160mm; }
+    .page:last-child { page-break-after: auto; }
+    .cover { display: flex; flex-direction: column; justify-content: center; min-height: 160mm; }
+    .brand { letter-spacing: 0.14em; text-transform: uppercase; color: #7c5cfc; font-weight: 800; font-size: 12px; }
+    .cover h1 { font-size: 36px; margin: 10px 0 6px; }
+    .kpis { display: flex; gap: 16px; margin-top: 28px; }
+    .kpi { flex: 1; background: #f7f8fd; border: 1px solid #e7e9f4; border-radius: 16px; padding: 16px; }
+    .kpi span { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #7e8299; font-weight: 800; }
+    .kpi strong { display: block; font-family: Outfit, sans-serif; font-size: 24px; margin-top: 6px; }
+    .notes { white-space: pre-wrap; background: #f7f8fd; border-radius: 12px; padding: 12px; margin: 12px 0 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #7e8299; padding: 6px 8px; border-bottom: 1px solid #e7e9f4; }
+    td { padding: 6px 8px; border-bottom: 1px solid #eef0f8; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .total td { font-weight: 800; }
+    @page { @bottom-center { content: "Confidential — {{ client_name }}  ·  The Bots Lab"; font-size: 9px; color: #7e8299; font-family: Nunito, sans-serif; } }
+  </style>
+</head>
+<body>
+  <section class="page cover">
+    <div class="brand">The Bots Lab</div>
+    <h1>{{ month_name }}</h1>
+    <p>{{ client_name }} — monthly presentation</p>
+    <div class="kpis">
+      <div class="kpi"><span>Ad spend</span><strong>{{ money(rollup.totals.amount_spent) }}</strong></div>
+      <div class="kpi"><span>Tickets sold</span><strong>{{ rollup.totals.tix_sold }}</strong></div>
+      <div class="kpi"><span>Cost per ticket</span><strong>{% if rollup.totals.cpp is not none %}{{ money(rollup.totals.cpp) }}{% else %}—{% endif %}</strong></div>
+      <div class="kpi"><span>Weeks</span><strong>{{ rollup.weeks|length }}</strong></div>
+    </div>
+  </section>
+
+  {% for week in rollup.weeks %}
+  <section class="page">
+    <div class="brand">Week ending {{ week.week.period_end }}</div>
+    <h2 style="font-size:22px;margin:8px 0 12px;">{{ week.week.updated_until or week.week.period_end }}</h2>
+    <div class="notes">{% if week.week.notes %}{{ week.week.notes }}{% else %}No notes this week.{% endif %}</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th class="num">Spent</th>
+          <th class="num">Clicks</th>
+          <th class="num">Tix sold</th>
+          <th class="num">CPP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in week.groups %}
+        <tr>
+          <td>{{ group.event_label }}</td>
+          <td class="num">{{ money(group.totals.amount_spent) }}</td>
+          <td class="num">{{ group.totals.clicks }}</td>
+          <td class="num">{{ group.totals.tix_sold }}</td>
+          <td class="num">{% if group.totals.cpp is not none %}{{ money(group.totals.cpp) }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td>Week total</td>
+          <td class="num">{{ money(week.totals.amount_spent) }}</td>
+          <td class="num">{{ week.totals.clicks }}</td>
+          <td class="num">{{ week.totals.tix_sold }}</td>
+          <td class="num">{% if week.totals.cpp is not none %}{{ money(week.totals.cpp) }}{% else %}—{% endif %}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
+
+  {% if not rollup.weeks %}
+  <section class="page">
+    <h2>No weekly reports in this month yet.</h2>
+  </section>
+  {% endif %}
+</body>
+</html>

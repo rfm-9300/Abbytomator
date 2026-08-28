@@ -1,0 +1,208 @@
+---
+import Dashboard from "../../layouts/Dashboard.astro";
+---
+
+<Dashboard
+  title="Weekly report"
+  current="weeks"
+  description="Generate Abby-style comments from this week's numbers, edit them, then download the PDF."
+>
+  <p class="crumb"><a href="/weeks">Weeks</a></p>
+  <p class="banner banner--bad" id="week-error" hidden></p>
+  <p class="banner banner--ok" id="week-ok" hidden></p>
+  <div class="stack">
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title" id="week-title">Week</h2>
+        <div class="row row--wrap">
+          <a class="btn btn--ghost btn--sm" id="to-overview" href="/overview">Overview</a>
+          <button class="btn btn--ghost btn--sm" id="generate-notes" type="button">Generate comments</button>
+          <button class="btn btn--primary btn--sm" id="download-pdf" type="button">Download PDF</button>
+        </div>
+      </div>
+      <form class="form panel__body" id="week-form">
+        <div class="form__row">
+          <label class="lbl" for="updated_until">Updated until</label>
+          <input class="inp" id="updated_until" name="updated_until" placeholder="10/8" />
+        </div>
+        <p class="hint">Numbers come from Overview. Generate comments fills the letter in Abby’s voice. Edit anything, then save.</p>
+        <div id="notes-fields" class="stack"></div>
+        <button class="btn btn--primary" type="submit">Save notes</button>
+      </form>
+    </section>
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Import Meta report</h2>
+      </div>
+      <form class="form panel__body" id="import-form">
+        <p class="hint">Same as Overview: CSV from Meta Ads Manager. Spend, clicks and status update; Tix Sold already entered is kept.</p>
+        <label class="file">
+          <input class="file__input" type="file" name="file" accept=".csv,.txt,.xlsx" required />
+          <span class="file__ui">
+            <span class="file__btn">Choose file</span>
+            <span class="file__name" data-file-name>No file chosen</span>
+          </span>
+        </label>
+        <button class="btn btn--ghost" type="submit">Import</button>
+      </form>
+    </section>
+  </div>
+</Dashboard>
+
+<script>
+  import { api, download, type Overview, type Week } from "../../lib/api";
+  import { escapeHtml } from "../../lib/format";
+
+  const id = Number(new URLSearchParams(location.search).get("id"));
+  const form = document.getElementById("week-form") as HTMLFormElement;
+  const importForm = document.getElementById("import-form") as HTMLFormElement;
+  const title = document.getElementById("week-title") as HTMLElement;
+  const error = document.getElementById("week-error") as HTMLElement;
+  const ok = document.getElementById("week-ok") as HTMLElement;
+  const toOverview = document.getElementById("to-overview") as HTMLAnchorElement;
+  const downloadBtn = document.getElementById("download-pdf") as HTMLButtonElement;
+  const generateBtn = document.getElementById("generate-notes") as HTMLButtonElement;
+  const notesFields = document.getElementById("notes-fields") as HTMLElement;
+  let overview: Overview | null = null;
+
+  function flash(el: HTMLElement, message: string) {
+    error.hidden = true;
+    ok.hidden = true;
+    el.hidden = false;
+    el.textContent = message;
+  }
+
+  if (!id) {
+    flash(error, "Missing week id.");
+  }
+
+  function statusSelect(name: string, value: string): string {
+    const live = value === "live" ? "selected" : "";
+    const off = value === "off" ? "selected" : "";
+    return `<select class="sel" name="${name}">
+      <option value="live" ${live}>Live</option>
+      <option value="off" ${off}>Off</option>
+    </select>`;
+  }
+
+  function renderNotes(data: Overview) {
+    if (!data.groups.length) {
+      notesFields.innerHTML = `<p class="hint">Import a Meta CSV on Overview first, then come back to write the letter.</p>`;
+      return;
+    }
+    const parts: string[] = [];
+    for (const group of data.groups) {
+      for (const campaign of group.campaigns) {
+        const hasCities = campaign.locations.length > 0;
+        parts.push(`
+          <section class="panel">
+            <div class="panel__head">
+              <h3 class="panel__title">${escapeHtml(campaign.name)}</h3>
+              <span class="pill ${campaign.status === "live" ? "pill--ok" : ""}">${campaign.status === "live" ? "Live" : "Off"}</span>
+            </div>
+            <div class="panel__body stack">
+              <div class="form__row">
+                <label class="lbl" for="note-${campaign.id}">Campaign note</label>
+                <textarea class="txt" id="note-${campaign.id}" name="note-${campaign.id}" rows="3" placeholder="Which cities are still live, what changed this week.">${escapeHtml(campaign.note || "")}</textarea>
+              </div>
+              <div class="form__row">
+                <label class="lbl" for="summary-${campaign.id}">${hasCities ? "Overall comment" : "Performance summary"}</label>
+                <textarea class="txt" id="summary-${campaign.id}" name="summary-${campaign.id}" rows="4" placeholder="One point per line.">${escapeHtml(campaign.performance_summary || "")}</textarea>
+              </div>
+        `);
+        for (const loc of campaign.locations) {
+          parts.push(`
+              <div class="form__row">
+                <label class="lbl" for="loc-note-${loc.id}">${escapeHtml(loc.name)}</label>
+                ${statusSelect(`loc-status-${loc.id}`, loc.status || "live")}
+                <textarea class="txt" id="loc-note-${loc.id}" name="loc-note-${loc.id}" rows="3" placeholder="One or two sentences on this city.">${escapeHtml(loc.note || "")}</textarea>
+              </div>
+          `);
+        }
+        parts.push(`
+              <div class="form__row">
+                <label class="lbl" for="next-${campaign.id}">Next steps</label>
+                <textarea class="txt" id="next-${campaign.id}" name="next-${campaign.id}" rows="3" placeholder="One action per line.">${escapeHtml(campaign.next_steps || "")}</textarea>
+              </div>
+            </div>
+          </section>
+        `);
+      }
+    }
+    notesFields.innerHTML = parts.join("");
+  }
+
+  async function load() {
+    const week = await api<Week>(`/api/weeks/${id}`);
+    overview = await api<Overview>(`/api/overview?week_id=${id}`);
+    title.textContent = `Week ending ${week.period_end}`;
+    (form.elements.namedItem("updated_until") as HTMLInputElement).value = week.updated_until || "";
+    toOverview.href = `/overview?week=${week.id}`;
+    renderNotes(overview);
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!overview) return;
+    const campaigns = overview.groups.flatMap((group) =>
+      group.campaigns.map((campaign) => ({
+        id: campaign.id,
+        note: (form.elements.namedItem(`note-${campaign.id}`) as HTMLTextAreaElement).value,
+        performance_summary: (form.elements.namedItem(`summary-${campaign.id}`) as HTMLTextAreaElement).value,
+        next_steps: (form.elements.namedItem(`next-${campaign.id}`) as HTMLTextAreaElement).value,
+      }))
+    );
+    const locations = overview.groups.flatMap((group) =>
+      group.campaigns.flatMap((campaign) =>
+        campaign.locations.map((loc) => ({
+          id: loc.id,
+          note: (form.elements.namedItem(`loc-note-${loc.id}`) as HTMLTextAreaElement)?.value || "",
+          status: (form.elements.namedItem(`loc-status-${loc.id}`) as HTMLSelectElement)?.value || loc.status,
+        }))
+      )
+    );
+    overview = await api<Overview>(`/api/weeks/${id}/notes`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        updated_until: (form.elements.namedItem("updated_until") as HTMLInputElement).value,
+        campaigns,
+        locations,
+      }),
+    });
+    renderNotes(overview);
+    flash(ok, "Notes saved.");
+  });
+
+  importForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const file = (importForm.elements.namedItem("file") as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const body = new FormData();
+    body.append("file", file);
+    const result = await api<{ campaigns_upserted: number }>(`/api/weeks/${id}/import`, { method: "POST", body });
+    flash(ok, `Imported ${result.campaigns_upserted} campaigns.`);
+    await load();
+  });
+
+  generateBtn.addEventListener("click", async () => {
+    generateBtn.disabled = true;
+    generateBtn.textContent = "Writing…";
+    try {
+      overview = await api<Overview>(`/api/weeks/${id}/generate-notes`, { method: "POST" });
+      renderNotes(overview);
+      flash(ok, "Comments drafted and saved. Edit if you want, then download the PDF.");
+    } catch (err) {
+      flash(error, String(err));
+    } finally {
+      generateBtn.disabled = false;
+      generateBtn.textContent = "Generate comments";
+    }
+  });
+
+  downloadBtn.addEventListener("click", async () => {
+    const week = await api<Week>(`/api/weeks/${id}`);
+    await download(`/api/weeks/${id}/pdf`, `weekly-stuart-mitchell-${week.period_end}.pdf`);
+  });
+
+  if (id) load().catch((err) => flash(error, String(err)));
+</script>

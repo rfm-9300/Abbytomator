@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ client_name }} | Meta Ads Reporting</title>
+  <style>
+    @page { size: letter; margin: 12mm 14mm 14mm; }
+    * { box-sizing: border-box; }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-Bold.ttf") format("truetype");
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-Italic.ttf") format("truetype");
+      font-weight: 400;
+      font-style: italic;
+    }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-BoldItalic.ttf") format("truetype");
+      font-weight: 700;
+      font-style: italic;
+    }
+    body {
+      font-family: "Punchline Sans", Arial, Helvetica, sans-serif;
+      color: #111;
+      font-size: 11px;
+      line-height: 1.4;
+      margin: 0;
+    }
+    img.logo { height: 52px; width: auto; display: block; margin-bottom: 10px; }
+    .titlebar {
+      border: 1.5px solid #111;
+      padding: 6px 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      font-size: 13px;
+      text-transform: uppercase;
+      margin-bottom: 0;
+    }
+    .meta {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 12px;
+      font-size: 11px;
+    }
+    .meta td {
+      border: 1px solid #111;
+      padding: 5px 8px;
+      width: 33.33%;
+    }
+    h2 {
+      font-size: 12px;
+      margin: 14px 0 6px;
+      font-weight: 700;
+    }
+    .banner {
+      background: #ffe566;
+      border: 1px solid #111;
+      padding: 5px 8px;
+      font-weight: 700;
+      font-size: 11px;
+      margin: 14px 0 8px;
+    }
+    .note { margin: 0 0 8px; }
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 10px;
+      font-size: 10px;
+    }
+    table.data th, table.data td {
+      border: 1px solid #111;
+      padding: 3px 4px;
+      vertical-align: top;
+    }
+    table.data th {
+      background: #f3f3f3;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: left;
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .live { color: #0a7a3e; font-weight: 700; }
+    .off { color: #b42318; font-weight: 700; }
+    ul { margin: 4px 0 10px; padding-left: 16px; }
+    li { margin: 2px 0; }
+    .kpis { margin: 0 0 8px; padding-left: 16px; }
+    .kpis--punch li { white-space: nowrap; }
+    .city { page-break-inside: avoid; margin: 10px 0 8px; }
+    .city h3 { font-size: 11px; margin: 0 0 4px; font-weight: 400; }
+    .city h3 strong { font-weight: 700; }
+    .city h3 em { font-style: italic; font-weight: 400; }
+    .city .note { margin: 0 0 8px 16px; }
+    .section { page-break-inside: avoid; }
+    .totals { margin: 6px 0 8px; }
+  </style>
+</head>
+<body>
+  <img class="logo" src="punchline-logo.png" alt="Punchline Promotions">
+  <div class="titlebar">{{ client_name|upper }} | META ADS REPORTING</div>
+  <table class="meta">
+    <tr>
+      <td><strong>Client:</strong> {{ client_name }}</td>
+      <td><strong>Date:</strong> Updated to {{ overview.week.label }}</td>
+      <td><strong>Account Manager:</strong> {{ overview.account_manager }}</td>
+    </tr>
+  </table>
+
+  <h2>Overview of all Campaigns:</h2>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Platform</th>
+        <th>Campaign</th>
+        <th>Status</th>
+        <th class="num">Amount spent</th>
+        <th class="num">Clicks</th>
+        <th class="num">CPC</th>
+        <th class="num">CTR</th>
+        <th class="num">Tix sold</th>
+        <th class="num">CPP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in overview.groups %}
+      {% for campaign in group.campaigns %}
+      <tr>
+        <td>{{ campaign.platform }}</td>
+        <td>{{ campaign.name }}</td>
+        <td class="{{ campaign.status }}">{{ campaign.status|capitalize }}</td>
+        <td class="num">{{ money(campaign.amount_spent) }}</td>
+        <td class="num">{{ whole(campaign.clicks) }}</td>
+        <td class="num">{{ money_or_dash(campaign.cpc) }}</td>
+        <td class="num">{{ percent(campaign.ctr) }}</td>
+        <td class="num">{{ whole(campaign.tix_sold) }}</td>
+        <td class="num">{{ money_or_dash(campaign.cpp) }}</td>
+      </tr>
+      {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if not overview.has_structured_notes and overview.week.notes %}
+  <p class="note">{{ overview.week.notes }}</p>
+  {% endif %}
+
+  {% for group in overview.groups %}
+  {% for campaign in group.campaigns %}
+  <section class="section">
+    <div class="banner">{{ campaign.name }} Performance Update ({{ overview.week.label }})</div>
+    {% if campaign.note %}<p class="note">{{ campaign.note }}</p>{% endif %}
+
+    {% if campaign.locations %}
+    <table class="data">
+      <thead>
+        <tr>
+          <th>City</th>
+          <th>Status</th>
+          <th class="num">Ad spend</th>
+          {% if campaign.show_city_clicks %}
+          <th class="num">Clicks</th>
+          <th class="num">CPC</th>
+          {% endif %}
+          {% for col in overview.history %}
+          <th class="num">{{ col.label }}</th>
+          {% endfor %}
+          <th class="num">Total tix</th>
+          <th class="num">CPP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loc in campaign.locations %}
+        <tr>
+          <td>{{ loc.name }}</td>
+          <td class="{{ loc.status }}">{{ status_phrase(loc.status) }}</td>
+          <td class="num">{% if loc.amount_spent is not none %}{{ money(loc.amount_spent) }}{% else %}-{% endif %}</td>
+          {% if campaign.show_city_clicks %}
+          <td class="num">{% if loc.clicks %}{{ whole(loc.clicks) }}{% else %}-{% endif %}</td>
+          <td class="num">{{ money_or_dash(loc.cpc) }}</td>
+          {% endif %}
+          {% for tix in loc.tix_history %}
+          <td class="num">{% if tix is not none %}{{ whole(tix) }}{% endif %}</td>
+          {% endfor %}
+          <td class="num">{{ whole(loc.tix_sold) }}</td>
+          <td class="num">{{ money_or_dash(loc.cpp) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <strong>Overall Totals:</strong>
+      <ul class="kpis">
+        <li>Ad Spend: {{ money(campaign.amount_spent) }}</li>
+        <li>Link Clicks: {{ whole(campaign.clicks) }}</li>
+        <li>CPC: {{ money_or_dash(campaign.cpc) }}</li>
+        <li>Total Tickets Sold: {{ whole(campaign.tix_sold) }}</li>
+        <li>CPP: {{ money_or_dash(campaign.cpp) }}</li>
+      </ul>
+    </div>
+
+    {% if bullets(campaign.performance_summary) %}
+    <ul>
+      {% for line in bullets(campaign.performance_summary) %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+    {% elif campaign.performance_summary %}
+    <p class="note">{{ campaign.performance_summary }}</p>
+    {% endif %}
+
+    {% for loc in campaign.locations %}
+    <div class="city">
+      <h3><strong>{{ loc.name }}</strong> — <em>{{ status_phrase(loc.status) }}</em></h3>
+      <ul class="kpis kpis--punch">
+        <li>Ad Spend: {% if loc.amount_spent is not none %}{{ money(loc.amount_spent) }}{% else %}-{% endif %} | Clicks: {{ whole(loc.clicks) }} | CPC: {{ money_or_dash(loc.cpc) }}</li>
+        <li>Tickets Sold: {{ whole(loc.tix_sold) }}{% if loc.cpp is not none %} | CPP: {{ money(loc.cpp) }}{% endif %}</li>
+      </ul>
+      {% if loc.note %}<p class="note">{{ loc.note }}</p>{% endif %}
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <ul class="kpis">
+      <li>Ad Spend: {{ money(campaign.amount_spent) }}</li>
+      <li>Clicks: {{ whole(campaign.clicks) }}</li>
+      <li>CPC: {{ money_or_dash(campaign.cpc) }}</li>
+      <li>CTR: {{ percent(campaign.ctr) }}</li>
+      <li>Tickets Sold: {{ whole(campaign.tix_sold) }}</li>
+      <li>CPP: {{ money_or_dash(campaign.cpp) }}</li>
+    </ul>
+    {% if bullets(campaign.performance_summary) %}
+    <p><strong>Performance Summary:</strong></p>
+    <ul>
+      {% for line in bullets(campaign.performance_summary) %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+    {% elif campaign.performance_summary %}
+    <p><strong>Performance Summary:</strong></p>
+    <p class="note">{{ campaign.performance_summary }}</p>
+    {% endif %}
+    {% endif %}
+
+    {% if bullets(campaign.next_steps) %}
+    <p><strong>Next Steps:</strong></p>
+    <ul>
+      {% for line in bullets(campaign.next_steps) %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+    {% elif campaign.next_steps %}
+    <p><strong>Next Steps:</strong></p>
+    <p class="note">{{ campaign.next_steps }}</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+  {% endfor %}
+</body>
+</html>
