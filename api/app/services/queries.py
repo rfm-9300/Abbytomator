@@ -132,7 +132,7 @@ def _unique_history(weeks: list[Week]) -> list[dict]:
     return rows
 
 
-def overview_for_week(db: Session, week: Week) -> dict:
+def overview_for_week(db: Session, week: Week, *, include_previous: bool = True) -> dict:
     campaigns = db.scalars(
         select(Campaign)
         .where(Campaign.client_id == week.client_id, Campaign.archived_at.is_(None))
@@ -204,10 +204,18 @@ def overview_for_week(db: Session, week: Week) -> dict:
         )
 
     grouped.sort(key=lambda g: g["event_label"].lower())
+    previous = None
+    if include_previous and len(history) >= 2:
+        prior = history[-2]
+        previous = {
+            "label": week_label(prior),
+            "totals": overview_for_week(db, prior, include_previous=False)["totals"],
+        }
     return {
         "week": week_payload(week),
         "account_manager": ACCOUNT_MANAGER,
         "history": history_payload,
+        "previous": previous,
         "has_structured_notes": has_structured_notes,
         "groups": grouped,
         "totals": {

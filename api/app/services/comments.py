@@ -25,17 +25,15 @@ The examples above show tone only. Do not copy their sentences. Write about the 
 Rules:
 - Never invent numbers. Only use the snapshot. You may refer to direction (up, down, holding, concentrating) from tickets_by_week.
 - Do not mention Meta, Punchline, Abby, AI, or that this was generated.
-- note: 1-2 sentences on what is live vs paused this week. Empty if there are no cities.
+- note: 1-2 sentences on what is live vs paused this week. Empty only when the campaign has no cities.
 - performance_summary: 2-3 short lines (newline separated, no bullets). Read efficiency, conversion vs reach, and whether CPP is healthy for this show. For city tours this is the overall tour read.
 - next_steps: 2-3 concrete actions naming campaigns or cities (newline separated, no bullets). Not "monitor performance".
-- city note: 1-2 sentences. Volume vs efficiency, closed out vs still live, CPP direction if prior-week tickets exist.
-- Off / paused cities: past tense, banked totals, call out a high CPP if it is the outlier.
-- Live cities: present tense. If it is the last live city, say it is carrying the campaign and watch CPP creep.
-- Off campaign with zero spend: empty note and summary; one next-steps line to hold until the next on-sale.
+- city note: 1-2 sentences. Volume vs efficiency, CPP direction if prior-week tickets exist. Do not assign Live/Off to a city — that is the campaign's status.
+- Off campaign: still write the full set. Past tense. note says it is off this week; performance_summary is a 2-line close-out (including when spend is £0.00 this week); next_steps is hold / leave off until the next on-sale. Never return empty strings for an Off campaign.
 
 Return JSON only:
 {"campaigns":[{"id":1,"note":"","performance_summary":"","next_steps":""}],"locations":[{"id":1,"note":""}]}
-Use the ids from the snapshot. Include every campaign and location.
+Use the ids from the snapshot. Include every campaign and location. Every campaign must have non-empty performance_summary and next_steps.
 """
 
 
@@ -77,7 +75,6 @@ def letter_snapshot(overview: dict, currency: str) -> dict:
                     {
                         "id": loc["id"],
                         "name": loc["name"],
-                        "status": loc.get("status") or "live",
                         "spend": _fmt_money(loc.get("amount_spent"), currency),
                         "clicks": loc.get("clicks") or 0,
                         "cpc": _fmt_money(loc.get("cpc"), currency),
@@ -175,6 +172,36 @@ def _parse_json(content: str) -> dict:
     return data
 
 
+def _zero_spend(campaign: dict) -> bool:
+    spend = str(campaign.get("spend") or "")
+    return spend in {"", "—", "£0.00", "$0.00", "€0.00"} and not campaign.get("clicks") and not campaign.get("tickets")
+
+
+def _fallback_campaign(campaign: dict) -> dict:
+    off = (campaign.get("status") or "") == "off"
+    name = campaign.get("name") or "this campaign"
+    if off:
+        note = f"{name} is off this week."
+        if _zero_spend(campaign):
+            summary = "No spend this week.\nBanked totals stay on the letter as the close-out."
+        else:
+            summary = "The line is off. Totals on this row are the close-out for the week."
+        next_steps = "Hold until the next on-sale is confirmed."
+        if campaign.get("has_cities"):
+            note = f"{name} is off this week. City totals below are the close-out."
+        return {"note": note, "performance_summary": summary, "next_steps": next_steps}
+    return {
+        "note": "",
+        "performance_summary": "",
+        "next_steps": "",
+    }
+
+
+def _fallback_location(loc: dict) -> str:
+    name = loc.get("name") or "This city"
+    return f"{name} held its place on the tour this week."
+
+
 def _align_draft(snapshot: dict, drafted: dict) -> dict:
     by_campaign = {int(row["id"]): row for row in drafted.get("campaigns") or [] if "id" in row}
     by_location = {int(row["id"]): row for row in drafted.get("locations") or [] if "id" in row}
@@ -182,15 +209,26 @@ def _align_draft(snapshot: dict, drafted: dict) -> dict:
     locations = []
     for campaign in snapshot["campaigns"]:
         row = by_campaign.get(int(campaign["id"]), {})
+        fallback = _fallback_campaign(campaign)
+        note = str(row.get("note") or "").strip()
+        summary = str(row.get("performance_summary") or "").strip()
+        next_steps = str(row.get("next_steps") or "").strip()
+        if campaign.get("status") == "off":
+            note = note or fallback["note"]
+            summary = summary or fallback["performance_summary"]
+            next_steps = next_steps or fallback["next_steps"]
+        elif not summary:
+            summary = fallback["performance_summary"]
         campaigns.append(
             {
                 "id": campaign["id"],
-                "note": str(row.get("note") or "").strip(),
-                "performance_summary": str(row.get("performance_summary") or "").strip(),
-                "next_steps": str(row.get("next_steps") or "").strip(),
+                "note": note,
+                "performance_summary": summary,
+                "next_steps": next_steps or fallback["next_steps"],
             }
         )
         for loc in campaign["locations"]:
             loc_row = by_location.get(int(loc["id"]), {})
-            locations.append({"id": loc["id"], "note": str(loc_row.get("note") or "").strip()})
+            loc_note = str(loc_row.get("note") or "").strip() or _fallback_location(loc)
+            locations.append({"id": loc["id"], "note": loc_note})
     return {"campaigns": campaigns, "locations": locations}

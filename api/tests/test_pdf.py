@@ -109,19 +109,26 @@ def test_weekly_html_is_punchline_letter() -> None:
     db.flush()
 
     html = render_weekly_html(overview_for_week(db, week), client.name, client.currency)
-    assert "Punchline Sans" in html
-    assert "fonts/LiberationSans-Regular.ttf" in html
-    assert "META ADS REPORTING" in html
-    assert "Account Manager" in html
-    assert "Overview of all Campaigns" in html
-    assert "[TA] ON THE ROAD Performance Update (10/8)" in html
+    assert "Source Serif 4" in html
+    assert "Public Sans" in html
+    assert "fonts/PublicSans-Regular.ttf" in html
+    assert "fonts/SourceSerif4-SemiBold.ttf" in html
+    assert "Meta Ads Reporting" in html
+    assert "Account Manager: Abby" in html
+    assert "Updated to 10/8" in html
+    assert "Overview" in html
+    assert "On the Road" in html
+    assert "Edinburgh Shows" in html
     assert "Dundee is the only city still live." in html
-    assert "Ad Spend:" in html and "| Clicks:" in html and "| CPC:" in html
-    assert "— <em>Live</em>" in html or "— <em>Now off</em>" in html
-    assert "Next Steps" in html
+    assert "● Live" in html
+    assert "Next steps" in html
     assert "Monitor Dundee as the show date nears." in html
     assert "3/8" in html
-    assert "Performance Summary" in html
+    assert "Performance summary" not in html  # single-line summaries render as prose, no label
+    assert "Ticket sales across the tour continue to climb." in html
+    assert "CPC and CTR holding steady at scale." in html
+    assert "Dundee remains the top-performing location by volume." in html
+    assert "Aberdeen closed out with a healthy final tally." in html
     assert "punchline-logo.png" in html
     assert "Weekly report" not in html
     assert "The Bots Lab" not in html

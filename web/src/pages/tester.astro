@@ -1,0 +1,198 @@
+---
+import Dashboard from "../layouts/Dashboard.astro";
+---
+
+<Dashboard
+  title="Tester"
+  current="tester"
+  description="Load fictional Stuart Mitchell data so you can click through Overview, Weeks, and Monthly. This writes to the same database as the rest of the dashboard."
+>
+  <p class="banner banner--warn">
+    These actions change the live local (or production) SQLite file. Use Replace or Clear only when you want to throw away the current weeks and campaigns.
+  </p>
+  <p class="banner banner--ok" id="tester-ok" hidden></p>
+  <p class="banner banner--bad" id="tester-error" hidden></p>
+  <div class="stack">
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Snapshot</h2>
+        <button class="btn btn--ghost btn--sm" id="refresh" type="button">Refresh</button>
+      </div>
+      <div class="panel__body">
+        <p class="hint" id="client-line"></p>
+        <div class="kpis" id="kpis">
+          <div class="kpi"><p class="kpi__label">Weeks</p><p class="kpi__value" data-kpi="weeks">—</p></div>
+          <div class="kpi"><p class="kpi__label">Campaigns</p><p class="kpi__value" data-kpi="campaigns">—</p></div>
+          <div class="kpi"><p class="kpi__label">Cities</p><p class="kpi__value" data-kpi="locations">—</p></div>
+          <div class="kpi"><p class="kpi__label">Latest week</p><p class="kpi__value" data-kpi="latest">—</p></div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="weeks-table">
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="campaigns-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Campaign</th>
+              <th>Cities</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Demo set</h2>
+      </div>
+      <div class="panel__body stack">
+        <p class="hint">
+          Five weeks (20/7 to 17/8), six Meta campaigns, On the Road with five cities, letter notes on the latest week, and enough July + August rows for Monthly.
+        </p>
+        <div class="row row--wrap">
+          <button class="btn btn--primary" id="load-demo" type="button">Load demo set</button>
+          <button class="btn btn--ghost" id="add-week" type="button">Add another week</button>
+        </div>
+        <div class="row row--wrap">
+          <button class="btn btn--danger" id="replace-demo" type="button">Replace with demo</button>
+          <button class="btn btn--danger" id="clear-all" type="button">Wipe everything</button>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Open the dashboard</h2>
+      </div>
+      <div class="panel__body">
+        <div class="row row--wrap">
+          <a class="btn btn--ghost btn--sm" href="/overview">Overview</a>
+          <a class="btn btn--ghost btn--sm" href="/weeks">Weeks</a>
+          <a class="btn btn--ghost btn--sm" href="/monthly">Monthly</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Dashboard>
+
+<script>
+  import { api } from "../lib/api";
+  import { escapeHtml } from "../lib/format";
+
+  type Status = {
+    client: { name: string; currency: string };
+    weeks: number;
+    campaigns: number;
+    locations: number;
+    latest_week: { label: string; id: number } | null;
+    week_rows: { id: number; period_end: string; label: string }[];
+    campaign_rows: { id: number; name: string; status: string; cities: string[] }[];
+  };
+
+  const ok = document.getElementById("tester-ok") as HTMLElement;
+  const error = document.getElementById("tester-error") as HTMLElement;
+  const weeksBody = document.querySelector("#weeks-table tbody") as HTMLTableSectionElement;
+  const campaignsBody = document.querySelector("#campaigns-table tbody") as HTMLTableSectionElement;
+  const clientLine = document.getElementById("client-line") as HTMLElement;
+
+  function flash(el: HTMLElement, message: string) {
+    ok.hidden = true;
+    error.hidden = true;
+    el.hidden = false;
+    el.textContent = message;
+  }
+
+  function render(data: Status) {
+    document.querySelector('[data-kpi="weeks"]')!.textContent = String(data.weeks);
+    document.querySelector('[data-kpi="campaigns"]')!.textContent = String(data.campaigns);
+    document.querySelector('[data-kpi="locations"]')!.textContent = String(data.locations);
+    document.querySelector('[data-kpi="latest"]')!.textContent = data.latest_week?.label || "—";
+    clientLine.textContent = `${data.client.name} · ${data.client.currency}`;
+    weeksBody.innerHTML = data.week_rows
+      .map(
+        (week) => `
+        <tr>
+          <td class="name">${escapeHtml(week.label)} <span class="muted">(${escapeHtml(week.period_end)})</span></td>
+          <td>
+            <a class="btn btn--ghost btn--sm" href="/overview?week=${week.id}">Overview</a>
+            <a class="btn btn--ghost btn--sm" href="/weeks/detail?id=${week.id}">Notes</a>
+          </td>
+        </tr>`
+      )
+      .join("");
+    campaignsBody.innerHTML = data.campaign_rows
+      .map(
+        (row) => `
+        <tr>
+          <td><span class="pill ${row.status === "live" ? "pill--ok" : ""}">${row.status === "live" ? "Live" : "Off"}</span></td>
+          <td class="name">${escapeHtml(row.name)}</td>
+          <td class="muted">${row.cities.map((city) => escapeHtml(city)).join(", ") || "—"}</td>
+        </tr>`
+      )
+      .join("");
+  }
+
+  async function load() {
+    const data = await api<Status>("/api/tester/status");
+    render(data);
+  }
+
+  async function run(path: string, body: Record<string, unknown> | undefined, message: string) {
+    error.hidden = true;
+    const data = await api<Status>(path, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    render(data);
+    flash(ok, message);
+  }
+
+  document.getElementById("refresh")!.addEventListener("click", () => {
+    load().catch((err) => flash(error, String(err)));
+  });
+
+  document.getElementById("load-demo")!.addEventListener("click", () => {
+    run("/api/tester/demo", { replace: false }, "Demo set loaded. Open Overview to see the table.")
+      .catch((err) => flash(error, String(err)));
+  });
+
+  document.getElementById("add-week")!.addEventListener("click", () => {
+    run("/api/tester/week", undefined, "Added the next week from the latest snapshot.")
+      .catch((err) => flash(error, String(err)));
+  });
+
+  document.getElementById("replace-demo")!.addEventListener("click", () => {
+    if (
+      !confirm(
+        "Replace everything with the demo set?\n\nAll current weeks, campaigns, cities, and letter notes are deleted first.",
+      )
+    ) {
+      return;
+    }
+    run("/api/tester/demo", { replace: true }, "Database replaced with the demo set.")
+      .catch((err) => flash(error, String(err)));
+  });
+
+  document.getElementById("clear-all")!.addEventListener("click", () => {
+    if (
+      !confirm(
+        "Wipe every week, campaign, city, and letter note?\n\nStuart Mitchell stays as the client. This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    run("/api/tester/clear", undefined, "Wiped. Weeks and campaigns are gone. The client row is still there.")
+      .catch((err) => flash(error, String(err)));
+  });
+
+  load().catch((err) => flash(error, String(err)));
+</script>

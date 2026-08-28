@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
@@ -17,6 +18,16 @@ from app.services.csv_source import CsvInsightsSource
 from app.services.import_week import import_from_source
 from app.services.pdf import monthly_pdf_bytes, weekly_pdf_bytes
 from app.services.queries import monthly_rollup, overview_for_week, require_client, week_payload
+from app.services.week_rows import (
+    WeekRowError,
+    add_campaign_to_week,
+    add_location_to_week,
+    delete_location,
+    delete_week,
+    patch_week_campaign,
+    patch_week_location,
+    remove_campaign_from_week,
+)
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_user)])
 
@@ -31,8 +42,39 @@ class WeekPatch(BaseModel):
     updated_until: str | None = None
 
 
-class TixPatch(BaseModel):
-    tix_sold: int
+class CampaignWeekIn(BaseModel):
+    name: str
+    platform: str = "META"
+    status: str = "live"
+    city: str | None = None
+    amount_spent: Decimal = Decimal("0")
+    clicks: int = 0
+    ctr: Decimal | None = None
+    tix_sold: int = 0
+
+
+class CampaignWeekPatch(BaseModel):
+    name: str | None = None
+    platform: str | None = None
+    status: str | None = None
+    amount_spent: Decimal | None = None
+    clicks: int | None = None
+    ctr: Decimal | None = None
+    tix_sold: int | None = None
+
+
+class LocationWeekIn(BaseModel):
+    name: str
+    amount_spent: Decimal | None = None
+    clicks: int | None = None
+    tix_sold: int | None = None
+
+
+class LocationWeekPatch(BaseModel):
+    name: str | None = None
+    amount_spent: Decimal | None = None
+    clicks: int | None = None
+    tix_sold: int | None = None
 
 
 class CampaignNotesIn(BaseModel):
@@ -45,7 +87,6 @@ class CampaignNotesIn(BaseModel):
 class LocationNotesIn(BaseModel):
     id: int
     note: str = ""
-    status: str | None = None
 
 
 class WeekNotesPatch(BaseModel):
@@ -89,6 +130,10 @@ def _week_or_404(db: Session, week_id: int) -> Week:
     return week
 
 
+def _row_error(exc: WeekRowError) -> HTTPException:
+    return HTTPException(400, str(exc))
+
+
 @router.get("/weeks")
 def list_weeks(db: Session = Depends(get_db)) -> dict:
     client = require_client(db, CLIENT_SLUG)
@@ -125,6 +170,11 @@ def patch_week(week_id: int, body: WeekPatch, db: Session = Depends(get_db)) -> 
     return week_payload(week)
 
 
+@router.delete("/weeks/{week_id}", status_code=204)
+def remove_week(week_id: int, db: Session = Depends(get_db)) -> None:
+    delete_week(db, _week_or_404(db, week_id))
+
+
 def _apply_letter_notes(db: Session, week: Week, body: WeekNotesPatch) -> dict:
     if body.updated_until is not None:
         week.updated_until = body.updated_until
@@ -142,10 +192,6 @@ def _apply_letter_notes(db: Session, week: Week, body: WeekNotesPatch) -> dict:
             raise HTTPException(404, f"Location {item.id} not found")
         loc_metric = _location_metric(db, week, location.id)
         loc_metric.note = item.note
-        if item.status is not None:
-            if item.status not in {"live", "off"}:
-                raise HTTPException(400, "status must be live or off")
-            location.status = item.status
     return overview_for_week(db, week)
 
 
@@ -180,48 +226,121 @@ async def import_week(week_id: int, file: UploadFile = File(...), db: Session = 
     }
 
 
+@router.post("/weeks/{week_id}/campaigns")
+def create_week_campaign(week_id: int, body: CampaignWeekIn, db: Session = Depends(get_db)) -> dict:
+    week = _week_or_404(db, week_id)
+    client = require_client(db, CLIENT_SLUG)
+    try:
+        add_campaign_to_week(
+            db,
+            client,
+            week,
+            name=body.name,
+            platform=body.platform,
+            status=body.status,
+            city=body.city,
+            amount_spent=body.amount_spent,
+            clicks=body.clicks,
+            ctr=body.ctr,
+            tix_sold=body.tix_sold,
+        )
+    except WeekRowError as exc:
+        raise _row_error(exc) from exc
+    return overview_for_week(db, week)
+
+
 @router.patch("/weeks/{week_id}/campaigns/{campaign_id}")
-def patch_week_campaign(
-    week_id: int, campaign_id: int, body: TixPatch, db: Session = Depends(get_db)
+def update_week_campaign(
+    week_id: int, campaign_id: int, body: CampaignWeekPatch, db: Session = Depends(get_db)
+) -> dict:
+    week = _week_or_404(db, week_id)
+    client = require_client(db, CLIENT_SLUG)
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(404, "Campaign not found")
+    try:
+        patch_week_campaign(
+            db,
+            client,
+            week,
+            campaign,
+            name=body.name,
+            platform=body.platform,
+            status=body.status,
+            amount_spent=body.amount_spent,
+            clicks=body.clicks,
+            ctr=body.ctr,
+            tix_sold=body.tix_sold,
+        )
+    except WeekRowError as exc:
+        raise _row_error(exc) from exc
+    return overview_for_week(db, week)
+
+
+@router.delete("/weeks/{week_id}/campaigns/{campaign_id}")
+def remove_week_campaign(week_id: int, campaign_id: int, db: Session = Depends(get_db)) -> dict:
+    week = _week_or_404(db, week_id)
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(404, "Campaign not found")
+    remove_campaign_from_week(db, week, campaign)
+    return overview_for_week(db, week)
+
+
+@router.delete("/weeks/{week_id}/locations/{location_id}")
+def remove_week_location(week_id: int, location_id: int, db: Session = Depends(get_db)) -> dict:
+    week = _week_or_404(db, week_id)
+    location = db.get(Location, location_id)
+    if location is None:
+        raise HTTPException(404, "Location not found")
+    delete_location(db, location)
+    return overview_for_week(db, week)
+
+
+@router.post("/weeks/{week_id}/campaigns/{campaign_id}/locations")
+def create_week_location(
+    week_id: int, campaign_id: int, body: LocationWeekIn, db: Session = Depends(get_db)
 ) -> dict:
     week = _week_or_404(db, week_id)
     campaign = db.get(Campaign, campaign_id)
     if campaign is None:
         raise HTTPException(404, "Campaign not found")
-    metric = _campaign_metric(db, week, campaign.id)
-    metric.tix_sold = max(0, body.tix_sold)
-    return {"campaign_id": campaign.id, "tix_sold": metric.tix_sold}
+    try:
+        add_location_to_week(
+            db,
+            week,
+            campaign,
+            name=body.name,
+            amount_spent=body.amount_spent,
+            clicks=body.clicks,
+            tix_sold=body.tix_sold,
+        )
+    except WeekRowError as exc:
+        raise _row_error(exc) from exc
+    return overview_for_week(db, week)
 
 
 @router.patch("/weeks/{week_id}/locations/{location_id}")
-def patch_week_location(
-    week_id: int, location_id: int, body: TixPatch, db: Session = Depends(get_db)
+def update_week_location(
+    week_id: int, location_id: int, body: LocationWeekPatch, db: Session = Depends(get_db)
 ) -> dict:
     week = _week_or_404(db, week_id)
     location = db.get(Location, location_id)
     if location is None:
         raise HTTPException(404, "Location not found")
-    loc_metric = _location_metric(db, week, location.id)
-    loc_metric.tix_sold = max(0, body.tix_sold)
-    loc_ids = [loc.id for loc in location.campaign.locations]
-    loc_metrics = db.scalars(
-        select(WeekLocationMetric).where(
-            WeekLocationMetric.week_id == week.id,
-            WeekLocationMetric.location_id.in_(loc_ids),
+    try:
+        patch_week_location(
+            db,
+            week,
+            location,
+            name=body.name,
+            amount_spent=body.amount_spent,
+            clicks=body.clicks,
+            tix_sold=body.tix_sold,
         )
-    ).all()
-    total_tix = sum(m.tix_sold for m in loc_metrics)
-    campaign_metric = db.scalar(
-        select(WeekCampaignMetric).where(
-            WeekCampaignMetric.week_id == week.id,
-            WeekCampaignMetric.campaign_id == location.campaign_id,
-        )
-    )
-    if campaign_metric is None:
-        campaign_metric = WeekCampaignMetric(week_id=week.id, campaign_id=location.campaign_id)
-        db.add(campaign_metric)
-    campaign_metric.tix_sold = total_tix
-    return {"location_id": location.id, "tix_sold": loc_metric.tix_sold, "campaign_tix_sold": total_tix}
+    except WeekRowError as exc:
+        raise _row_error(exc) from exc
+    return overview_for_week(db, week)
 
 
 @router.get("/overview")

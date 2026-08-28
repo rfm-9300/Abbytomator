@@ -21,17 +21,17 @@ Google Docs → PDF, **US Letter portrait** (612×792), 3 pages. Punchline Promo
    - Yellow heading: `{campaign name} Performance Update ({updated_until})`
    - Optional campaign note (1–2 sentences, e.g. which cities are still live)
    - **If the campaign has cities (OTR):**
-     - Wide city table: city + status + spend + clicks + CPC + **tix sold by week date** + total tix + total CPP
+     - Wide city table: city + spend + clicks + CPC + **tix sold by week date** + total tix + total CPP (no per-city status — Live/Off is the campaign)
      - Overall totals as bullets (spend, clicks, CPC, tix, CPP)
      - One sentence on the campaign as a whole
-     - **Per city:** heading `{City} — Live|Now off` (name bold, status italic). Two punch bullets that must stay on one line each: `Ad Spend | Clicks | CPC` then `Tickets Sold | CPP`. Then the city comment paragraph, indented with the bullet text.
+     - **Per city:** heading `{City}` (name bold). Recap line for spend / tickets / CPP. Then the city comment paragraph.
      - **Next Steps** (bullets)
    - **If the campaign has no cities (Edinburgh, Blackfriars):**
      - KPI bullets: spend, clicks, CPC, CTR, tix, CPP
      - **Performance Summary** (bullets)
      - **Next Steps** (bullets)
 
-Numbers come from Meta CSV + typed Tix Sold. All prose (note, city comments, performance summary, next steps) is written by Abby.
+Numbers come from Overview (typed campaign rows). All prose (note, city comments, performance summary, next steps) is written by Abby.
 
 ### What we do not copy from the sample
 
@@ -52,4 +52,4 @@ Source example: `samples/weekly PDF and monthly presentation.pdf` (10 landscape 
 8. NEXT STEPS
 9. QUESTIONS?
 
-Dashboard import: Meta CSV on **Overview** (and again on the week detail page).
+Dashboard entry: add and edit campaign rows on **Overview**. Week detail is comments only.

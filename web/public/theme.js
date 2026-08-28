@@ -159,6 +159,39 @@
     });
   }
 
+  function initAutosizeTextareas() {
+    function fit(el) {
+      const cs = window.getComputedStyle(el);
+      const border = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+      // "auto" alone won't shrink a textarea below its rows-derived size, so collapse
+      // it first — that forces scrollHeight to report the content's real height.
+      el.style.height = "0px";
+      el.style.height = el.scrollHeight + border + "px";
+    }
+    function fitAll(root) {
+      (root || document).querySelectorAll(".txt").forEach(fit);
+    }
+
+    fitAll();
+    // Weeks detail renders its .txt fields into #notes-fields after an async fetch,
+    // well after DOMContentLoaded — catch those (and any future dynamic ones) as they land.
+    new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType !== 1) return;
+          if (node.classList.contains("txt")) fit(node);
+          node.querySelectorAll && fitAll(node);
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+
+    document.addEventListener("input", (event) => {
+      if (event.target.classList && event.target.classList.contains("txt")) fit(event.target);
+    });
+    // Wrapping can change at narrower widths, which changes how tall the content is.
+    window.addEventListener("resize", () => fitAll());
+  }
+
   function initRowLinks() {
     document.querySelectorAll("tr[data-href]").forEach((row) => {
       row.addEventListener("click", (event) => {
@@ -192,6 +225,7 @@
     document.querySelectorAll("[data-tabs]").forEach(initTabs);
     initBusyForms();
     initRowLinks();
+    initAutosizeTextareas();
     initCopyButtons();
     formatTimes();
   });

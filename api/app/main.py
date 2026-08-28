@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import SEED_IF_EMPTY, WEB_DIST, ensure_dirs
 from app.db import init_db
 from app.routers import router as core_router
+from app.routers.tester import router as tester_router
 from app.routers.weeks import router as weeks_router
 from app.seed import seed_if_empty
 
@@ -33,6 +34,7 @@ app.add_middleware(
 
 app.include_router(core_router)
 app.include_router(weeks_router)
+app.include_router(tester_router)
 
 
 @app.get("/health")

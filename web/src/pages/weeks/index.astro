@@ -5,35 +5,37 @@ import Dashboard from "../../layouts/Dashboard.astro";
 <Dashboard
   title="Weeks"
   current="weeks"
-  description="One snapshot per week. Import Meta CSV, write the client letter, download the PDF."
+  description="One snapshot per week. Add campaigns on Overview, write the client letter, download the PDF."
 >
-  <div class="stack">
+  <p class="banner banner--ok" id="weeks-ok" hidden></p>
+  <p class="banner banner--bad" id="weeks-error" hidden></p>
   <section class="panel">
     <div class="panel__head">
-      <h2 class="panel__title">New week</h2>
+      <h2 class="panel__title">All weeks</h2>
+      <button class="btn btn--primary btn--sm" id="show-add" type="button">+ New week</button>
     </div>
-    <form class="form panel__body" id="create-week">
-      <div class="form__grid">
-        <div class="form__row">
-          <label class="lbl" for="period_end">Week ending</label>
-          <input class="inp" id="period_end" name="period_end" type="date" required />
-        </div>
-      </div>
-      <button class="btn btn--primary" type="submit">Open week</button>
-    </form>
-  </section>
-  <section class="panel">
-    <div class="panel__head"><h2 class="panel__title">All weeks</h2></div>
     <div class="tbl-wrap">
       <table class="tbl" id="weeks-table">
         <thead>
           <tr>
             <th>Week ending</th>
             <th>Updated until</th>
-            <th></th>
+            <th><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody></tbody>
+        <tfoot>
+          <tr class="tbl__row--add" id="add-row" hidden>
+            <td><input class="inp" id="period_end" type="date" required aria-label="Week ending date" /></td>
+            <td class="muted">Set once the week is open</td>
+            <td class="tbl__actions">
+              <span class="tbl__rowactions">
+                <button class="btn btn--primary btn--sm" id="add-save" type="button">Open week</button>
+                <button class="iconbtn iconbtn--sm" id="add-cancel" type="button" aria-label="Cancel">✕</button>
+              </span>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
     <div class="empty empty--weeks" id="weeks-empty" hidden>
@@ -41,7 +43,6 @@ import Dashboard from "../../layouts/Dashboard.astro";
       <p class="empty__desc">Create a week ending date to start reporting.</p>
     </div>
   </section>
-  </div>
 </Dashboard>
 
 <script>
@@ -49,39 +50,120 @@ import Dashboard from "../../layouts/Dashboard.astro";
 
   const tbody = document.querySelector("#weeks-table tbody") as HTMLTableSectionElement;
   const empty = document.getElementById("weeks-empty") as HTMLElement;
-  const form = document.getElementById("create-week") as HTMLFormElement;
+  const error = document.getElementById("weeks-error") as HTMLElement;
+  const ok = document.getElementById("weeks-ok") as HTMLElement;
+  const addRow = document.getElementById("add-row") as HTMLTableRowElement;
+  const showAdd = document.getElementById("show-add") as HTMLButtonElement;
+  const dateInput = document.getElementById("period_end") as HTMLInputElement;
+  let hasRows = false;
+
+  function showError(message: string) {
+    ok.hidden = true;
+    error.hidden = false;
+    error.textContent = message.replace(/^Error:\s*/, "");
+  }
+
+  function showOk(message: string) {
+    error.hidden = true;
+    ok.hidden = false;
+    ok.textContent = message;
+    window.setTimeout(() => {
+      if (ok.textContent === message) ok.hidden = true;
+    }, 2600);
+  }
+
+  function openAddRow(open: boolean) {
+    addRow.hidden = !open;
+    showAdd.hidden = open;
+    empty.hidden = open || hasRows;
+    if (open) {
+      if (!dateInput.value) {
+        // Default to the coming Sunday, which is how the reporting week ends.
+        const today = new Date();
+        today.setDate(today.getDate() + ((7 - today.getDay()) % 7));
+        dateInput.value = today.toISOString().slice(0, 10);
+      }
+      dateInput.focus();
+    }
+  }
 
   async function load() {
     const { weeks } = await api<{ weeks: Week[] }>("/api/weeks");
-    empty.hidden = weeks.length > 0;
+    hasRows = weeks.length > 0;
+    empty.hidden = hasRows || !addRow.hidden;
     tbody.innerHTML = weeks
       .map(
         (week) => `
       <tr data-href="/weeks/detail?id=${week.id}">
         <td class="name"><a href="/weeks/detail?id=${week.id}">${week.period_end}</a></td>
         <td class="muted">${week.updated_until || "—"}</td>
-        <td><a class="btn btn--ghost btn--sm" href="/weeks/detail?id=${week.id}">Open</a></td>
+        <td class="tbl__actions">
+          <span class="tbl__rowactions">
+            <a class="btn btn--ghost btn--sm" href="/overview?week=${week.id}">Numbers</a>
+            <a class="btn btn--ghost btn--sm" href="/weeks/detail?id=${week.id}">Letter</a>
+            <button class="iconbtn iconbtn--sm iconbtn--danger" data-delete-week="${week.id}" data-week-label="${week.label || week.period_end}" type="button" title="Delete this week" aria-label="Delete week ${week.label || week.period_end}">✕</button>
+          </span>
+        </td>
       </tr>`
       )
       .join("");
-    document.querySelectorAll("tr[data-href]").forEach((row) => {
+    tbody.querySelectorAll<HTMLTableRowElement>("tr[data-href]").forEach((row) => {
       row.addEventListener("click", (event) => {
-        if ((event.target as HTMLElement).closest("a")) return;
-        const href = row.getAttribute("data-href");
-        if (href) location.href = href;
+        if ((event.target as HTMLElement).closest("a, button")) return;
+        location.href = row.dataset.href!;
+      });
+    });
+    tbody.querySelectorAll<HTMLButtonElement>("[data-delete-week]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        const label = button.dataset.weekLabel || "this week";
+        if (
+          !confirm(
+            `Delete the week "${label}"?\n\nNumbers and letter notes for this week are gone. Campaigns stay available for other weeks.`,
+          )
+        ) {
+          return;
+        }
+        try {
+          await api(`/api/weeks/${button.dataset.deleteWeek}`, { method: "DELETE" });
+          await load();
+          showOk(`Deleted ${label}.`);
+        } catch (err) {
+          showError(String(err));
+        }
       });
     });
   }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const period_end = (form.elements.namedItem("period_end") as HTMLInputElement).value;
-    const week = await api<Week>("/api/weeks", {
-      method: "POST",
-      body: JSON.stringify({ period_end }),
-    });
-    location.href = `/weeks/detail?id=${week.id}`;
+  async function createWeek() {
+    if (!dateInput.value) {
+      dateInput.classList.add("is-invalid");
+      dateInput.focus();
+      showError("Pick the date the week ends.");
+      return;
+    }
+    dateInput.classList.remove("is-invalid");
+    try {
+      const week = await api<Week>("/api/weeks", {
+        method: "POST",
+        body: JSON.stringify({ period_end: dateInput.value }),
+      });
+      location.href = `/overview?week=${week.id}`;
+    } catch (err) {
+      showError(String(err));
+    }
+  }
+
+  showAdd.addEventListener("click", () => openAddRow(true));
+  document.getElementById("add-cancel")!.addEventListener("click", () => openAddRow(false));
+  document.getElementById("add-save")!.addEventListener("click", () => createWeek());
+  addRow.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      createWeek();
+    }
+    if (event.key === "Escape") openAddRow(false);
   });
 
-  load();
+  load().catch((err) => showError(String(err)));
 </script>

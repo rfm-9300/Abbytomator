@@ -7,12 +7,13 @@ interface Props {
 
 const { title, current, description } = Astro.props;
 const nav = [
-  { href: "/tracker", id: "tracker", label: "Tracker" },
   { href: "/overview", id: "overview", label: "Overview" },
   { href: "/weeks", id: "weeks", label: "Weeks" },
   { href: "/monthly", id: "monthly", label: "Monthly" },
   { href: "/settings", id: "settings", label: "Settings" },
 ];
+// Tester is a dev tool, so it sits after a separator rather than beside the report pages.
+const devNav = [{ href: "/tester", id: "tester", label: "Tester" }];
 const wide = current === "overview" || current === "monthly";
 ---
 
@@ -35,7 +36,7 @@ const wide = current === "overview" || current === "monthly";
   <body>
     <a class="skip" href="#content">Skip to content</a>
     <header class="topbar">
-      <a class="brand" href="/tracker">
+      <a class="brand" href="/overview">
         <span class="brand__mark" aria-hidden="true">AB</span>
         <span class="brand__text">
           <span class="brand__name">Abbitomator</span>
@@ -47,6 +48,16 @@ const wide = current === "overview" || current === "monthly";
           current !== "login" && (
             <nav class="topbar__nav" aria-label="Main">
               {nav.map((item) => (
+                <a
+                  class="btn btn--ghost btn--sm"
+                  href={item.href}
+                  aria-current={current === item.id ? "page" : undefined}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <span class="topbar__sep" aria-hidden="true" />
+              {devNav.map((item) => (
                 <a
                   class="btn btn--ghost btn--sm"
                   href={item.href}
