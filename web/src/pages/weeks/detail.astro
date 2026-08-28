@@ -7,7 +7,17 @@ import Dashboard from "../../layouts/Dashboard.astro";
   current="weeks"
   description="Generate Abby-style comments from this week's numbers, edit them, then download the PDF."
 >
-  <p class="crumb"><a href="/weeks">Weeks</a></p>
+  <div class="scopebar">
+    <span class="scopebar__label" id="week-label">Week</span>
+    <div class="scopebar__step">
+      <button class="iconbtn iconbtn--sm" id="week-prev" type="button" aria-label="Previous week">‹</button>
+      <select class="sel" id="week-select" aria-labelledby="week-label"></select>
+      <button class="iconbtn iconbtn--sm" id="week-next" type="button" aria-label="Next week">›</button>
+    </div>
+    <span class="scopebar__spacer"></span>
+    <a class="btn btn--ghost btn--sm" href="/weeks">All weeks</a>
+    <a class="btn btn--ghost btn--sm" id="to-overview" href="/overview">Overview</a>
+  </div>
   <p class="banner banner--bad" id="week-error" hidden></p>
   <p class="banner banner--ok" id="week-ok" hidden></p>
   <div class="stack">
@@ -15,7 +25,6 @@ import Dashboard from "../../layouts/Dashboard.astro";
       <div class="panel__head">
         <h2 class="panel__title" id="week-title">Week</h2>
         <div class="row row--wrap">
-          <a class="btn btn--ghost btn--sm" id="to-overview" href="/overview">Overview</a>
           <button class="btn btn--ghost btn--sm" id="generate-notes" type="button">Generate comments</button>
           <button class="btn btn--primary btn--sm" id="download-pdf" type="button">Download PDF</button>
         </div>
@@ -30,22 +39,6 @@ import Dashboard from "../../layouts/Dashboard.astro";
         <button class="btn btn--primary" type="submit">Save notes</button>
       </form>
     </section>
-    <section class="panel">
-      <div class="panel__head">
-        <h2 class="panel__title">Import Meta report</h2>
-      </div>
-      <form class="form panel__body" id="import-form">
-        <p class="hint">Same as Overview: CSV from Meta Ads Manager. Spend, clicks and status update; Tix Sold already entered is kept.</p>
-        <label class="file">
-          <input class="file__input" type="file" name="file" accept=".csv,.txt,.xlsx" required />
-          <span class="file__ui">
-            <span class="file__btn">Choose file</span>
-            <span class="file__name" data-file-name>No file chosen</span>
-          </span>
-        </label>
-        <button class="btn btn--ghost" type="submit">Import</button>
-      </form>
-    </section>
   </div>
 </Dashboard>
 
@@ -53,9 +46,8 @@ import Dashboard from "../../layouts/Dashboard.astro";
   import { api, download, type Overview, type Week } from "../../lib/api";
   import { escapeHtml } from "../../lib/format";
 
-  const id = Number(new URLSearchParams(location.search).get("id"));
+  const params = new URLSearchParams(location.search);
   const form = document.getElementById("week-form") as HTMLFormElement;
-  const importForm = document.getElementById("import-form") as HTMLFormElement;
   const title = document.getElementById("week-title") as HTMLElement;
   const error = document.getElementById("week-error") as HTMLElement;
   const ok = document.getElementById("week-ok") as HTMLElement;
@@ -63,6 +55,10 @@ import Dashboard from "../../layouts/Dashboard.astro";
   const downloadBtn = document.getElementById("download-pdf") as HTMLButtonElement;
   const generateBtn = document.getElementById("generate-notes") as HTMLButtonElement;
   const notesFields = document.getElementById("notes-fields") as HTMLElement;
+  const weekSelect = document.getElementById("week-select") as HTMLSelectElement;
+  const weekPrev = document.getElementById("week-prev") as HTMLButtonElement;
+  const weekNext = document.getElementById("week-next") as HTMLButtonElement;
+  let currentId = Number(params.get("id"));
   let overview: Overview | null = null;
 
   function flash(el: HTMLElement, message: string) {
@@ -72,22 +68,9 @@ import Dashboard from "../../layouts/Dashboard.astro";
     el.textContent = message;
   }
 
-  if (!id) {
-    flash(error, "Missing week id.");
-  }
-
-  function statusSelect(name: string, value: string): string {
-    const live = value === "live" ? "selected" : "";
-    const off = value === "off" ? "selected" : "";
-    return `<select class="sel" name="${name}">
-      <option value="live" ${live}>Live</option>
-      <option value="off" ${off}>Off</option>
-    </select>`;
-  }
-
   function renderNotes(data: Overview) {
     if (!data.groups.length) {
-      notesFields.innerHTML = `<p class="hint">Import a Meta CSV on Overview first, then come back to write the letter.</p>`;
+      notesFields.innerHTML = `<p class="hint">Add campaigns on Overview first, then come back to write the letter.</p>`;
       return;
     }
     const parts: string[] = [];
@@ -114,7 +97,6 @@ import Dashboard from "../../layouts/Dashboard.astro";
           parts.push(`
               <div class="form__row">
                 <label class="lbl" for="loc-note-${loc.id}">${escapeHtml(loc.name)}</label>
-                ${statusSelect(`loc-status-${loc.id}`, loc.status || "live")}
                 <textarea class="txt" id="loc-note-${loc.id}" name="loc-note-${loc.id}" rows="3" placeholder="One or two sentences on this city.">${escapeHtml(loc.note || "")}</textarea>
               </div>
           `);
@@ -132,13 +114,29 @@ import Dashboard from "../../layouts/Dashboard.astro";
     notesFields.innerHTML = parts.join("");
   }
 
+  function updateStepper() {
+    const index = weekSelect.selectedIndex;
+    weekPrev.disabled = index < 0 || index >= weekSelect.options.length - 1;
+    weekNext.disabled = index <= 0;
+  }
+
   async function load() {
-    const week = await api<Week>(`/api/weeks/${id}`);
-    overview = await api<Overview>(`/api/overview?week_id=${id}`);
-    title.textContent = `Week ending ${week.period_end}`;
+    const week = await api<Week>(`/api/weeks/${currentId}`);
+    overview = await api<Overview>(`/api/overview?week_id=${currentId}`);
+    title.textContent = week.label || week.updated_until || `Week ending ${week.period_end}`;
     (form.elements.namedItem("updated_until") as HTMLInputElement).value = week.updated_until || "";
     toOverview.href = `/overview?week=${week.id}`;
+    weekSelect.value = String(week.id);
+    updateStepper();
     renderNotes(overview);
+  }
+
+  function selectWeek(id: number) {
+    currentId = id;
+    history.replaceState(null, "", `/weeks/detail?id=${id}`);
+    error.hidden = true;
+    ok.hidden = true;
+    load().catch((err) => flash(error, String(err)));
   }
 
   form.addEventListener("submit", async (event) => {
@@ -157,11 +155,10 @@ import Dashboard from "../../layouts/Dashboard.astro";
         campaign.locations.map((loc) => ({
           id: loc.id,
           note: (form.elements.namedItem(`loc-note-${loc.id}`) as HTMLTextAreaElement)?.value || "",
-          status: (form.elements.namedItem(`loc-status-${loc.id}`) as HTMLSelectElement)?.value || loc.status,
         }))
       )
     );
-    overview = await api<Overview>(`/api/weeks/${id}/notes`, {
+    overview = await api<Overview>(`/api/weeks/${currentId}/notes`, {
       method: "PATCH",
       body: JSON.stringify({
         updated_until: (form.elements.namedItem("updated_until") as HTMLInputElement).value,
@@ -173,22 +170,11 @@ import Dashboard from "../../layouts/Dashboard.astro";
     flash(ok, "Notes saved.");
   });
 
-  importForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const file = (importForm.elements.namedItem("file") as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const body = new FormData();
-    body.append("file", file);
-    const result = await api<{ campaigns_upserted: number }>(`/api/weeks/${id}/import`, { method: "POST", body });
-    flash(ok, `Imported ${result.campaigns_upserted} campaigns.`);
-    await load();
-  });
-
   generateBtn.addEventListener("click", async () => {
     generateBtn.disabled = true;
     generateBtn.textContent = "Writing…";
     try {
-      overview = await api<Overview>(`/api/weeks/${id}/generate-notes`, { method: "POST" });
+      overview = await api<Overview>(`/api/weeks/${currentId}/generate-notes`, { method: "POST" });
       renderNotes(overview);
       flash(ok, "Comments drafted and saved. Edit if you want, then download the PDF.");
     } catch (err) {
@@ -200,9 +186,38 @@ import Dashboard from "../../layouts/Dashboard.astro";
   });
 
   downloadBtn.addEventListener("click", async () => {
-    const week = await api<Week>(`/api/weeks/${id}`);
-    await download(`/api/weeks/${id}/pdf`, `weekly-stuart-mitchell-${week.period_end}.pdf`);
+    const week = await api<Week>(`/api/weeks/${currentId}`);
+    await download(`/api/weeks/${currentId}/pdf`, `weekly-stuart-mitchell-${week.period_end}.pdf`);
   });
 
-  if (id) load().catch((err) => flash(error, String(err)));
+  weekSelect.addEventListener("change", () => selectWeek(Number(weekSelect.value)));
+  weekPrev.addEventListener("click", () => {
+    const next = weekSelect.selectedIndex + 1;
+    if (next >= weekSelect.options.length) return;
+    weekSelect.selectedIndex = next;
+    selectWeek(Number(weekSelect.value));
+  });
+  weekNext.addEventListener("click", () => {
+    const next = weekSelect.selectedIndex - 1;
+    if (next < 0) return;
+    weekSelect.selectedIndex = next;
+    selectWeek(Number(weekSelect.value));
+  });
+
+  async function boot() {
+    const { weeks } = await api<{ weeks: { id: number; label?: string; updated_until: string | null; period_end: string }[] }>(
+      "/api/weeks",
+    );
+    weekSelect.innerHTML = weeks
+      .map((week) => `<option value="${week.id}">${week.label || week.updated_until || week.period_end}</option>`)
+      .join("");
+    if (!currentId && weeks[0]) currentId = weeks[0].id;
+    if (!currentId) {
+      flash(error, "Create a week first.");
+      return;
+    }
+    await load();
+  }
+
+  boot().catch((err) => flash(error, String(err)));
 </script>

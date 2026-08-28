@@ -39,7 +39,7 @@ def _to_dec(value):
 
 def _whole(value) -> str:
     if value is None:
-        return "-"
+        return "–"
     return f"{int(value):,}"
 
 
@@ -56,12 +56,11 @@ def _bullets(text: str | None) -> list[str]:
 
 def _percent(value) -> str:
     if value is None:
-        return "-"
+        return "–"
     dec = _to_dec(value)
     pct = (dec * Decimal("100")).quantize(Decimal("0.01"))
-    if pct == pct.to_integral():
-        return f"{int(pct)}%"
-    return f"{pct}%"
+    text = format(pct, "f").rstrip("0").rstrip(".")
+    return f"{text}%"
 
 
 def _status_phrase(status: str) -> str:
@@ -72,7 +71,7 @@ def _template_helpers(currency: str) -> dict:
     return {
         "money": lambda value: money_str(_to_dec(value), currency),
         "percent": _percent,
-        "money_or_dash": lambda value: money_str(_to_dec(value), currency) if value is not None else "-",
+        "money_or_dash": lambda value: money_str(_to_dec(value), currency) if value is not None else "–",
         "whole": _whole,
         "bullets": _bullets,
         "status_phrase": _status_phrase,

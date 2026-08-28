@@ -112,6 +112,7 @@ export type Overview = {
   week: Week | null;
   account_manager?: string;
   history?: { id: number; label: string; period_end: string }[];
+  previous?: { label: string; totals: Totals } | null;
   has_structured_notes?: boolean;
   groups: {
     event_label: string;

@@ -1,49 +1,61 @@
 ---
 import Dashboard from "../layouts/Dashboard.astro";
+
+const months = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 ---
 
 <Dashboard
   title="Monthly presentation"
   current="monthly"
-  description="Reads every weekly report in the month and builds a meeting PDF."
+  description="Reads every weekly report in the month and builds the meeting PDF."
 >
+  <div class="scopebar">
+    <span class="scopebar__label" id="month-label">Month</span>
+    <div class="scopebar__step">
+      <button class="iconbtn iconbtn--sm" id="month-prev" type="button" aria-label="Previous month">‹</button>
+      <select class="sel" id="month" aria-labelledby="month-label">
+        {months.map((name, index) => <option value={index + 1}>{name}</option>)}
+      </select>
+      <input class="inp inp--mono" id="year" type="number" min="2020" max="2100" step="1" aria-label="Year" />
+      <button class="iconbtn iconbtn--sm" id="month-next" type="button" aria-label="Next month">›</button>
+    </div>
+    <span class="scopebar__spacer"></span>
+    <button class="btn btn--primary btn--sm" id="download" type="button">Download presentation</button>
+  </div>
+
+  <p class="banner banner--bad" id="monthly-error" hidden></p>
+
+  <div class="kpis" id="kpis" hidden>
+    <div class="kpi"><p class="kpi__label">Spend</p><p class="kpi__value" data-kpi="spend">—</p></div>
+    <div class="kpi"><p class="kpi__label">Tix sold</p><p class="kpi__value" data-kpi="tix">—</p></div>
+    <div class="kpi"><p class="kpi__label">CPP</p><p class="kpi__value" data-kpi="cpp">—</p></div>
+    <div class="kpi"><p class="kpi__label">Weeks</p><p class="kpi__value" data-kpi="weeks">—</p></div>
+  </div>
+
   <section class="panel">
     <div class="panel__head">
-      <h2 class="panel__title">Month</h2>
-      <button class="btn btn--primary btn--sm" id="download" type="button">Download presentation</button>
+      <h2 class="panel__title">Weeks in this month</h2>
     </div>
-    <div class="panel__body">
-      <form class="form" id="month-form">
-        <div class="form__grid">
-          <div class="form__row">
-            <label class="lbl" for="year">Year</label>
-            <input class="inp" id="year" name="year" type="number" min="2020" required />
-          </div>
-          <div class="form__row">
-            <label class="lbl" for="month">Month</label>
-            <input class="inp" id="month" name="month" type="number" min="1" max="12" required />
-          </div>
-        </div>
-      </form>
-      <div class="kpis" id="kpis" hidden>
-        <div class="kpi"><p class="kpi__label">Spend</p><p class="kpi__value" data-kpi="spend">—</p></div>
-        <div class="kpi"><p class="kpi__label">Tix sold</p><p class="kpi__value" data-kpi="tix">—</p></div>
-        <div class="kpi"><p class="kpi__label">CPP</p><p class="kpi__value" data-kpi="cpp">—</p></div>
-        <div class="kpi"><p class="kpi__label">Weeks</p><p class="kpi__value" data-kpi="weeks">—</p></div>
-      </div>
-      <div class="tbl-wrap">
-        <table class="tbl" id="month-table">
-          <thead>
-            <tr>
-              <th>Week</th>
-              <th class="num">Spend</th>
-              <th class="num">Tix sold</th>
-              <th class="num">CPP</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    <div class="tbl-wrap">
+      <table class="tbl" id="month-table">
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th class="num">Spend</th>
+            <th class="num">Tix sold</th>
+            <th class="num">CPP</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="empty empty--weeks" id="month-empty" hidden>
+      <p class="empty__title">No weeks in this month</p>
+      <p class="empty__desc">Pick another month, or create a week and add its campaigns.</p>
+      <p class="empty__action"><a class="btn btn--primary btn--sm" href="/weeks">Go to Weeks</a></p>
     </div>
   </section>
 </Dashboard>
@@ -53,9 +65,12 @@ import Dashboard from "../layouts/Dashboard.astro";
   import { money, whole } from "../lib/format";
 
   const year = document.getElementById("year") as HTMLInputElement;
-  const month = document.getElementById("month") as HTMLInputElement;
+  const month = document.getElementById("month") as HTMLSelectElement;
   const kpis = document.getElementById("kpis") as HTMLElement;
-  const tbody = document.querySelector("#month-table tbody") as HTMLTableSectionElement;
+  const empty = document.getElementById("month-empty") as HTMLElement;
+  const error = document.getElementById("monthly-error") as HTMLElement;
+  const table = document.getElementById("month-table") as HTMLTableElement;
+  const tbody = table.querySelector("tbody") as HTMLTableSectionElement;
   const now = new Date();
   year.value = String(now.getFullYear());
   month.value = String(now.getMonth() + 1);
@@ -63,37 +78,78 @@ import Dashboard from "../layouts/Dashboard.astro";
   type Monthly = {
     year: number;
     month: number;
-    weeks: { week: { id: number; period_end: string; updated_until: string | null }; totals: { amount_spent: number; tix_sold: number; cpp: number | null } }[];
+    weeks: {
+      week: { id: number; period_end: string; updated_until: string | null; label?: string };
+      totals: { amount_spent: number; tix_sold: number; cpp: number | null };
+    }[];
     totals: { amount_spent: number; tix_sold: number; cpp: number | null };
   };
 
+  function showError(message: string) {
+    error.hidden = false;
+    error.textContent = message.replace(/^Error:\s*/, "");
+  }
+
   async function load() {
+    error.hidden = true;
     const data = await api<Monthly>(`/api/monthly?year=${year.value}&month=${month.value}`);
     kpis.hidden = false;
     kpis.querySelector('[data-kpi="spend"]')!.textContent = money(data.totals.amount_spent);
     kpis.querySelector('[data-kpi="tix"]')!.textContent = whole(data.totals.tix_sold);
     kpis.querySelector('[data-kpi="cpp"]')!.textContent = money(data.totals.cpp);
     kpis.querySelector('[data-kpi="weeks"]')!.textContent = String(data.weeks.length);
+    empty.hidden = data.weeks.length > 0;
     tbody.innerHTML = data.weeks
       .map(
         (item) => `
       <tr data-href="/weeks/detail?id=${item.week.id}">
-        <td class="name"><a href="/weeks/detail?id=${item.week.id}">${item.week.updated_until || item.week.period_end}</a></td>
+        <td class="name"><a href="/weeks/detail?id=${item.week.id}">${item.week.label || item.week.updated_until || item.week.period_end}</a></td>
         <td class="num">${money(item.totals.amount_spent)}</td>
         <td class="num">${whole(item.totals.tix_sold)}</td>
         <td class="num">${money(item.totals.cpp)}</td>
       </tr>`
       )
       .join("");
+    tbody.querySelectorAll<HTMLTableRowElement>("tr[data-href]").forEach((row) => {
+      row.addEventListener("click", (event) => {
+        if ((event.target as HTMLElement).closest("a")) return;
+        location.href = row.dataset.href!;
+      });
+    });
   }
 
-  year.addEventListener("change", load);
-  month.addEventListener("change", load);
+  function reload() {
+    load().catch((err) => showError(String(err)));
+  }
+
+  function step(offset: number) {
+    let value = Number(month.value) + offset;
+    let y = Number(year.value);
+    if (value < 1) {
+      value = 12;
+      y -= 1;
+    } else if (value > 12) {
+      value = 1;
+      y += 1;
+    }
+    month.value = String(value);
+    year.value = String(y);
+    reload();
+  }
+
+  year.addEventListener("change", reload);
+  month.addEventListener("change", reload);
+  document.getElementById("month-prev")!.addEventListener("click", () => step(-1));
+  document.getElementById("month-next")!.addEventListener("click", () => step(1));
   document.getElementById("download")!.addEventListener("click", async () => {
-    await download(
-      `/api/monthly/pdf?year=${year.value}&month=${month.value}`,
-      `monthly-stuart-mitchell-${year.value}-${String(month.value).padStart(2, "0")}.pdf`
-    );
+    try {
+      await download(
+        `/api/monthly/pdf?year=${year.value}&month=${month.value}`,
+        `monthly-stuart-mitchell-${year.value}-${String(month.value).padStart(2, "0")}.pdf`
+      );
+    } catch (err) {
+      showError(String(err));
+    }
   });
-  load();
+  reload();
 </script>

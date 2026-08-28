@@ -1,6 +1,6 @@
 # Abbitomator
 
-Abby’s reporting dashboard for the Stuart Mitchell account: Live Ads Tracker, Report Overview, weekly PDF, monthly presentation. Web UI follows [`design-system/AGENTS.md`](design-system/AGENTS.md).
+Abby’s reporting dashboard for the Stuart Mitchell account: Report Overview, weekly PDF, monthly presentation. Web UI follows [`design-system/AGENTS.md`](design-system/AGENTS.md).
 
 ## Personal wiki (second brain)
 
@@ -79,6 +79,7 @@ Use [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) as the source of truth. Pushe
 - `make api` / `make web` — one process (API `:8001`, Astro `:4321`)
 - `make test` — pytest in `api/`
 - `make seed` — fictional Stuart Mitchell demo data if the DB is empty
+- Tester page `/tester` — load / replace / clear the demo set (weeks, campaigns, cities, letter notes) in the same database
 
 Copy `.env.example` to `.env`. Dashboard login is HTTP Basic (`DASHBOARD_USER` / `DASHBOARD_PASSWORD`). Set `OPENROUTER_API_KEY` to draft weekly letter comments (same OpenRouter account as the other bots).
 

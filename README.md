@@ -1,8 +1,8 @@
 # Abbitomator
 
-Internal dashboard for Abby’s **Stuart Mitchell** reporting: campaign tracker, weekly overview (spend + tickets + cost per ticket), weekly PDF, monthly presentation.
+Internal dashboard for Abby’s **Stuart Mitchell** reporting: weekly overview (spend + tickets + cost per ticket), weekly PDF, monthly presentation.
 
-Meta data comes from an Ads Manager CSV/XLSX upload. Ticket sales stay manual. There is no Meta API in this version.
+Campaign spend, clicks, and tickets are typed on cities; the campaign row is their total. Add campaign includes a city field (leave it as Default if you are not splitting yet). CPC and CPP are calculated. There is no Meta CSV import in the dashboard.
 
 ## Run locally
 

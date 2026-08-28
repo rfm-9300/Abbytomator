@@ -126,7 +126,7 @@ Inline action groups: `.row`. If they may wrap on narrow tables, add `.row--wrap
 </main>
 ```
 
-Reporting tables (Overview, Monthly): `main.view.view--wide` so the 9-column campaign table fits (`--content-wide`). Tracker / Weeks / Settings stay at `--content`.
+Reporting tables (Overview, Monthly): `main.view.view--wide` so the 9-column campaign table fits (`--content-wide`). Weeks / Settings stay at `--content`.
 
 ## Panel + table
 
@@ -354,15 +354,52 @@ Use the shared vocabulary before inventing classes:
 - Confirm overwrite/delete → `.confirm` (add the CSS from WhatsApp-bot `style.css` if missing, then document it here)
 - Toast → `.toast`
 - Drawer form → `.drawer`
-- Auth card → `.login` wrapping a `.panel` on `/login`
+- Auth card → `.login` wrapping a `.panel` on `/login`. `main.view:has(> .login)` centers it on
+  a faint dot-grid background. `.login__brand` (`.login__mark` + `.login__name` +
+  `.login__tagline`) sits above the panel; `.login__heading` / `.login__sub` open the form in
+  place of a `.panel__head`; `.login__footer` is the closing tagline below the panel.
 
 ## Abbitomator reporting
 
-Campaign status: live → `pill pill--ok`, off → `pill`.
+Campaign status: live → `pill pill--ok`, off → `pill`. Where status is editable, the pill *is* the control: add `.pill--btn` to a `<button>` that toggles it. The coloured pill is what makes the table scannable, so never downgrade it to a `<select>`.
 
-Tix Sold cells use `.inp.inp--cell`. Event group rows `.tbl__row--group`, city rows `.tbl__row--city`, totals `.tbl__row--total`. Numeric cells `.num`.
+### Editable report table
 
-KPI strip: `.kpis` > `.kpi` > `.kpi__label` + `.kpi__value`. Stacked panels: `.stack`.
+The Overview table is the product's main workspace, so it must read as a **report first and a form second**. Values render as plain text in a `.cellv` span and only become an input once clicked (or focused and Enter/Space pressed):
 
-Weekly letter editor (week detail): one `.panel` per campaign inside `#notes-fields`. Campaign note / performance summary / next steps are `.txt`. City rows add a `.sel` (live/off) plus a comment `.txt`. Ticket numbers stay on Overview. `#generate-notes` is a `.btn.btn--ghost.btn--sm` that drafts those fields from the week numbers.
+```html
+<td class="num" data-cell="tix_sold">
+  <span class="cellv" role="button" tabindex="0"
+        data-campaign="12" data-field="tix_sold" data-kind="int" data-raw="1450">1,450</span>
+</td>
+```
+
+- `data-kind` drives display and edit formatting: `money`, `int`, `pct`, `text`. `pct` displays `12.50%` but edits as `12.50`, because CTR is stored as a fraction and `parse_percent` divides anything above 1 by 100.
+- `data-raw` holds the edit value, the text node the formatted one. Keep both in sync on save.
+- Commit on blur or Enter, revert on Escape, and skip the request when the value is unchanged.
+- A whole table of visible input boxes reads as a form and drowns out summary rows. Do not do it. Values start as `.cellv` text and become an input only when clicked.
+- Save feedback is required: `.is-saved` for ~1s (green fade, `cell-saved` keyframes) on success, `.is-invalid` plus `.banner--bad` on failure. Silent saves are a bug.
+- Calculated cells (CPC, CPP) stay plain `.num` text — never editable.
+
+Row structure: one `tbody.tbl__block` per campaign (add `.tbl__block--split` when it has cities). City `.tbl__row--city`, parent `.tbl__row--parent`, totals `.tbl__row--total` in `tfoot` (below the add-campaign row), inline create `.tbl__row--add`. Cities keep every column so they line up with the campaign — do not colspan the name. Mark a city with `.tbl__city` + `.tbl__branch` in the Campaign column and a muted “City” label in Status.
+
+A split campaign is a **block**, not extra campaigns: accent rail on the first cell, shared `.surface-2` wash, campaign spend / clicks / tix use `.tbl__rolled` (they are the city sum, never typed on the campaign) plus a `.tbl__count` (“5 cities”). CTR stays on the campaign. **Add city** is a `.tbl__addcity.tbl__addcity--row` text control on the campaign row, visible on hover/focus — never a permanent empty row under the cities. The extra-city form starts hidden; ✕ or Escape closes it. After a successful add, close the form.
+
+Create rows live **inside the table**, revealed by a button in `.panel__head`. **+ Add campaign** opens two rows: campaign identity (platform, name, status, CTR) and a city row already underneath. City name placeholder is `Default` — leave it blank to store “Default” so numbers have a home before real cities exist. Spend / clicks / tix on that city row. Enter submits, Escape closes.
+
+### Week scope bar
+
+`.scopebar` is the pill-shaped control bar above the KPIs on week-scoped pages: `.scopebar__label`, a `.scopebar__step` (prev `.iconbtn--sm`, `.sel`, next `.iconbtn--sm`), `.scopebar__spacer`, then secondary links. Options are newest-first, so "previous" moves *down* the list.
+
+### KPI strip
+
+`.kpis` > `.kpi` > `.kpi__label` + `.kpi__value` + optional `.kpi__delta`. A bare number answers nothing, so show the week-over-week change: `.kpi__delta--good` / `--bad` by whether the movement is *desirable* (CPP falling is good), plain `.kpi__delta` when flat or on the first week. Stacked panels: `.stack`.
+
+Empty states may carry one CTA in `.empty__action`.
+
+Visually-obvious-but-unlabelled headers (the row-actions column) get `<span class="sr-only">Row actions</span>` rather than an empty `<th>`.
+
+Weekly letter editor (week detail): same `.scopebar` as Overview so you can change week without going back to the list, then one `.panel` per campaign inside `#notes-fields`. Campaign note / performance summary / next steps are `.txt`. Live/Off is the campaign pill in `.panel__head` — never a per-city select. City rows are a comment `.txt` only. Ticket numbers stay on Overview. `#generate-notes` is a `.btn.btn--ghost.btn--sm` that drafts those fields from the week numbers. Off campaigns still get a close-out (note + summary + next steps), not blank fields.
+
+Tester (`/tester`): snapshot KPIs + two `.tbl`s (weeks, campaigns). Load demo is `.btn.btn--primary`. Replace / Wipe everything are `.btn.btn--danger` and confirm in a dialog before they run. Warn with `.banner.banner--warn` that this writes to the same SQLite file.
 

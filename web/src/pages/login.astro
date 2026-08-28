@@ -4,11 +4,17 @@ import Dashboard from "../layouts/Dashboard.astro";
 
 <Dashboard title="Sign in" current="login">
   <div class="login">
-    <section class="panel">
-      <div class="panel__head">
-        <h1 class="panel__title">Abbitomator</h1>
+    <div class="login__brand">
+      <span class="login__mark" aria-hidden="true">AB</span>
+      <div>
+        <p class="login__name">Abbitomator</p>
+        <p class="login__tagline">Weekly numbers, written up right.</p>
       </div>
+    </div>
+    <section class="panel">
       <form class="form panel__body" id="login-form">
+        <h1 class="login__heading">Sign in</h1>
+        <p class="login__sub">Punchline Promotions reporting — internal use only.</p>
         <p class="hint">Sign in with the dashboard credentials from `.env`.</p>
         <div class="form__row">
           <label class="lbl" for="user">User</label>
@@ -22,6 +28,7 @@ import Dashboard from "../layouts/Dashboard.astro";
         <button class="btn btn--primary" type="submit">Open dashboard</button>
       </form>
     </section>
+    <p class="login__footer">thebots.lab · internal tools</p>
   </div>
 </Dashboard>
 
@@ -29,7 +36,7 @@ import Dashboard from "../layouts/Dashboard.astro";
   import { api, hasAuth, setAuth } from "../lib/api";
 
   if (hasAuth()) {
-    location.replace("/tracker/");
+    location.replace("/overview");
   }
 
   const form = document.getElementById("login-form") as HTMLFormElement;
@@ -42,7 +49,7 @@ import Dashboard from "../layouts/Dashboard.astro";
     setAuth(user, password);
     try {
       await api("/api/me");
-      location.replace("/tracker/");
+      location.replace("/overview");
     } catch (err) {
       error.hidden = false;
       error.textContent = "Could not sign in. Check DASHBOARD_USER and DASHBOARD_PASSWORD.";

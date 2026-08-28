@@ -110,7 +110,7 @@ def apply_insights(
         elif (campaign.event_label or "").strip() == campaign.name.strip():
             campaign.event_label = ""
 
-    _rollup_city_spend(db, week)
+    rollup_city_spend(db, week)
     return ImportResult(
         campaigns_upserted=campaign_count,
         locations_upserted=location_count,
@@ -129,7 +129,7 @@ def import_from_source(
     return apply_insights(db, client, week, insights, updated_until)
 
 
-def _rollup_city_spend(db: Session, week: Week) -> None:
+def rollup_city_spend(db: Session, week: Week) -> None:
     """When city rows carry spend, campaign spend is the sum of those cities."""
     metrics = db.scalars(
         select(WeekCampaignMetric).where(WeekCampaignMetric.week_id == week.id)

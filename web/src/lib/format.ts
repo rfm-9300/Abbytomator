@@ -15,6 +15,11 @@ export function percent(value: number | null | undefined): string {
   return `${(value * 100).toFixed(2)}%`;
 }
 
+export function percentInput(value: number | null | undefined): string {
+  if (value == null) return "";
+  return (value * 100).toFixed(2);
+}
+
 export function whole(value: number | null | undefined): string {
   if (value == null) return "—";
   return new Intl.NumberFormat("en-GB").format(value);

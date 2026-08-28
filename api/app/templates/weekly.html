@@ -4,146 +4,226 @@
   <meta charset="utf-8">
   <title>{{ client_name }} | Meta Ads Reporting</title>
   <style>
-    @page { size: letter; margin: 12mm 14mm 14mm; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/SourceSerif4-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/SourceSerif4-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/SourceSerif4-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; }
+    @font-face { font-family: "Public Sans"; src: url("fonts/PublicSans-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+    @font-face { font-family: "Public Sans"; src: url("fonts/PublicSans-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; }
+    @font-face { font-family: "Public Sans"; src: url("fonts/PublicSans-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; }
+    @font-face { font-family: "Public Sans"; src: url("fonts/PublicSans-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; }
+
+    @page {
+      size: letter;
+      margin: 0.55in;
+      @bottom-left {
+        content: "{{ client_name }} — Meta Ads Reporting";
+        font-family: "Public Sans", "Liberation Sans", Arial, sans-serif;
+        font-size: 8.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: oklch(0.5 0.01 55);
+        border-top: 1px solid oklch(0.88 0.008 55);
+        padding-top: 6px;
+      }
+      @bottom-right {
+        content: counter(page);
+        font-family: "Public Sans", "Liberation Sans", Arial, sans-serif;
+        font-size: 8.5px;
+        color: oklch(0.5 0.01 55);
+        border-top: 1px solid oklch(0.88 0.008 55);
+        padding-top: 6px;
+      }
+    }
+
+    :root {
+      --ink: oklch(0.22 0.015 55);
+      --ink-strong: oklch(0.2 0.015 55);
+      --prose: oklch(0.3 0.012 55);
+      --muted: oklch(0.5 0.01 55);
+      --muted-soft: oklch(0.55 0.01 55);
+      --rule: oklch(0.9 0.006 55);
+      --rule-strong: oklch(0.7 0.008 55);
+      --gold: oklch(0.72 0.13 78);
+      --off-tick: oklch(0.85 0.008 55);
+      --live: oklch(0.46 0.1 150);
+      --off: oklch(0.55 0.01 55);
+    }
+
     * { box-sizing: border-box; }
-    @font-face {
-      font-family: "Punchline Sans";
-      src: url("fonts/LiberationSans-Regular.ttf") format("truetype");
-      font-weight: 400;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: "Punchline Sans";
-      src: url("fonts/LiberationSans-Bold.ttf") format("truetype");
-      font-weight: 700;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: "Punchline Sans";
-      src: url("fonts/LiberationSans-Italic.ttf") format("truetype");
-      font-weight: 400;
-      font-style: italic;
-    }
-    @font-face {
-      font-family: "Punchline Sans";
-      src: url("fonts/LiberationSans-BoldItalic.ttf") format("truetype");
-      font-weight: 700;
-      font-style: italic;
-    }
+
     body {
-      font-family: "Punchline Sans", Arial, Helvetica, sans-serif;
-      color: #111;
-      font-size: 11px;
-      line-height: 1.4;
+      font-family: "Public Sans", "Liberation Sans", Arial, Helvetica, sans-serif;
+      font-size: 10.5px;
+      line-height: 1.55;
+      color: var(--ink);
       margin: 0;
     }
-    img.logo { height: 52px; width: auto; display: block; margin-bottom: 10px; }
-    .titlebar {
-      border: 1.5px solid #111;
-      padding: 6px 10px;
-      font-weight: 700;
+
+    .serif { font-family: "Source Serif 4", "Liberation Sans", Georgia, serif; }
+
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--gold);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .logo { height: 38px; width: auto; display: block; }
+    .brandtitle { font-weight: 700; font-size: 22px; color: var(--ink-strong); }
+    .brandtitle-sub { font-family: "Public Sans", sans-serif; font-weight: 500; font-size: 15px; color: var(--muted); }
+    .metarow {
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    .section-label {
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .section-label.sm { font-size: 9px; letter-spacing: 0.09em; margin-bottom: 6px; }
+    .indent { margin-left: 14px; }
+
+    table.overview { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 26px; }
+    table.overview thead tr {
+      border-bottom: 1px solid var(--rule-strong);
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 8.5px;
       letter-spacing: 0.04em;
-      font-size: 13px;
+    }
+    table.overview th { text-align: left; padding: 7px 8px 7px 0; font-weight: 600; }
+    table.overview th.num, table.overview td.num { text-align: right; padding: 7px 0 7px 8px; }
+    table.overview td { padding: 7px 8px 7px 0; overflow-wrap: break-word; }
+    table.overview tbody { font-variant-numeric: tabular-nums; }
+    table.overview tbody tr { border-bottom: 1px solid var(--rule); }
+    table.overview tbody tr:last-child { border-bottom: none; }
+    table.overview tr.is-off { color: var(--muted); }
+    .tix-strong { font-weight: 600; }
+
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .status-dot.live { background: var(--live); }
+    .status-dot.off { border: 1.5px solid var(--off); }
+    .status-dot.sm { width: 5px; height: 5px; margin-right: 4px; }
+
+    .chapter-divider { height: 1px; background: var(--rule); margin: 30px 0 24px; }
+
+    .chapter-head {
+      border-left: 4px solid var(--gold);
+      border-radius: 1px;
+      padding: 1px 0 1px 10px;
+      margin-bottom: 2px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+    .chapter-head.is-off { border-left-color: var(--off-tick); }
+    .chapter-name { font-weight: 600; font-size: 17px; }
+    .chapter-name.is-off { color: oklch(0.45 0.012 55); }
+    .chapter-status { font-size: 10.5px; font-weight: 600; margin-left: 10px; }
+    .chapter-status.live { color: var(--live); }
+    .chapter-status.off { color: var(--off); }
+    .chapter-sub { font-size: 11px; color: var(--muted); margin: 0 0 12px 14px; }
+
+    .chapter-note { font-size: 11.5px; line-height: 1.55; color: var(--prose); margin: 6px 0 14px; max-width: 5.8in; }
+    .chapter-note.muted { color: var(--muted); }
+
+    .kpi-cluster { display: flex; margin-bottom: 16px; font-variant-numeric: tabular-nums; break-inside: avoid; page-break-inside: avoid; }
+    .kpi-cluster.small { margin: 0 0 12px 14px; }
+    .kpi { padding: 0 16px; border-left: 1px solid var(--rule); }
+    .kpi:first-child { padding-left: 0; border-left: none; }
+    .kpi:last-child { padding-right: 0; }
+    .kpi .figure { font-size: 15px; font-weight: 600; }
+    .kpi .label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    ul.bullets { list-style: none; margin: 0 0 14px; padding: 0; }
+    ul.bullets li { font-size: 11px; line-height: 1.55; color: var(--prose); margin-bottom: 4px; padding-left: 14px; text-indent: -14px; }
+    ul.bullets li:last-child { margin-bottom: 0; }
+    ul.bullets li::before { content: "\2014"; color: var(--gold); margin-right: 6px; }
+
+    table.city-table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 10px; }
+    table.city-table thead tr {
+      border-bottom: 1px solid var(--rule-strong);
+      color: var(--muted);
       text-transform: uppercase;
-      margin-bottom: 0;
+      font-size: 8px;
+      letter-spacing: 0.04em;
     }
-    .meta {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 0 0 12px;
-      font-size: 11px;
-    }
-    .meta td {
-      border: 1px solid #111;
-      padding: 5px 8px;
-      width: 33.33%;
-    }
-    h2 {
-      font-size: 12px;
-      margin: 14px 0 6px;
-      font-weight: 700;
-    }
-    .banner {
-      background: #ffe566;
-      border: 1px solid #111;
-      padding: 5px 8px;
-      font-weight: 700;
-      font-size: 11px;
-      margin: 14px 0 8px;
-    }
-    .note { margin: 0 0 8px; }
-    table.data {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 0 0 10px;
-      font-size: 10px;
-    }
-    table.data th, table.data td {
-      border: 1px solid #111;
-      padding: 3px 4px;
-      vertical-align: top;
-    }
-    table.data th {
-      background: #f3f3f3;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      text-align: left;
-    }
-    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .live { color: #0a7a3e; font-weight: 700; }
-    .off { color: #b42318; font-weight: 700; }
-    ul { margin: 4px 0 10px; padding-left: 16px; }
-    li { margin: 2px 0; }
-    .kpis { margin: 0 0 8px; padding-left: 16px; }
-    .kpis--punch li { white-space: nowrap; }
-    .city { page-break-inside: avoid; margin: 10px 0 8px; }
-    .city h3 { font-size: 11px; margin: 0 0 4px; font-weight: 400; }
-    .city h3 strong { font-weight: 700; }
-    .city h3 em { font-style: italic; font-weight: 400; }
-    .city .note { margin: 0 0 8px 16px; }
-    .section { page-break-inside: avoid; }
-    .totals { margin: 6px 0 8px; }
+    table.city-table th { text-align: left; padding: 5px 6px 5px 0; font-weight: 600; }
+    table.city-table th.num, table.city-table td.num { text-align: right; padding: 5px 0 5px 6px; }
+    table.city-table td { padding: 5px 6px 5px 0; }
+    table.city-table tbody { font-variant-numeric: tabular-nums; }
+    table.city-table tbody tr { border-bottom: 1px solid var(--rule); }
+    table.city-table tbody tr:last-child { border-bottom: none; }
+    table.city-table tr.is-off { color: var(--muted); }
+
+    .ticket-history { display: grid; gap: 0; font-size: 9px; font-variant-numeric: tabular-nums; margin-bottom: 18px; }
+    .ticket-history .cell { padding: 4px 4px; border-top: 1px solid var(--rule); }
+    .ticket-history .cell.head { padding: 4px 6px; border-top: none; color: var(--muted); }
+    .ticket-history .cell.label { padding: 4px 6px; }
+    .ticket-history .cell.num { text-align: right; }
+    .ticket-history .cell.current { border-top: 2px solid var(--gold); font-weight: 600; color: oklch(0.4 0.01 55); }
+    .ticket-history .cell.dash { color: oklch(0.7 0.005 55); }
+    .ticket-history .cell.is-off { color: var(--muted-soft); }
+
+    .city-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .city-block { break-inside: avoid; page-break-inside: avoid; }
+    .city-block.is-off { color: var(--muted-soft); }
+    .city-name { font-weight: 600; font-size: 12px; }
+    .city-recap { font-size: 9.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .city-block.is-off .city-recap { color: inherit; }
+    .city-note { font-size: 10.5px; line-height: 1.45; color: var(--prose); }
+    .city-block.is-off .city-note { color: inherit; }
   </style>
 </head>
 <body>
-  <img class="logo" src="punchline-logo.png" alt="Punchline Promotions">
-  <div class="titlebar">{{ client_name|upper }} | META ADS REPORTING</div>
-  <table class="meta">
-    <tr>
-      <td><strong>Client:</strong> {{ client_name }}</td>
-      <td><strong>Date:</strong> Updated to {{ overview.week.label }}</td>
-      <td><strong>Account Manager:</strong> {{ overview.account_manager }}</td>
-    </tr>
-  </table>
 
-  <h2>Overview of all Campaigns:</h2>
-  <table class="data">
+  <div class="masthead">
+    <img class="logo" src="punchline-logo.png" alt="Punchline Promotions">
+    <div class="brandtitle serif">{{ client_name }} <span class="brandtitle-sub">| Meta Ads Reporting</span></div>
+  </div>
+  <div class="metarow">Client: {{ client_name }} &nbsp;&middot;&nbsp; Updated to {{ overview.week.label }} &nbsp;&middot;&nbsp; Account Manager: {{ overview.account_manager }}</div>
+
+  <div class="section-label">Overview</div>
+  <table class="overview">
     <thead>
       <tr>
-        <th>Platform</th>
         <th>Campaign</th>
         <th>Status</th>
-        <th class="num">Amount spent</th>
+        <th class="num">Spend</th>
         <th class="num">Clicks</th>
         <th class="num">CPC</th>
         <th class="num">CTR</th>
-        <th class="num">Tix sold</th>
+        <th class="num">Tix</th>
         <th class="num">CPP</th>
       </tr>
     </thead>
     <tbody>
       {% for group in overview.groups %}
       {% for campaign in group.campaigns %}
-      <tr>
-        <td>{{ campaign.platform }}</td>
+      <tr class="{{ 'is-off' if campaign.status != 'live' }}">
         <td>{{ campaign.name }}</td>
-        <td class="{{ campaign.status }}">{{ campaign.status|capitalize }}</td>
+        <td><span class="status-dot {{ 'live' if campaign.status == 'live' else 'off' }}"></span>{{ status_phrase(campaign.status) }}</td>
         <td class="num">{{ money(campaign.amount_spent) }}</td>
         <td class="num">{{ whole(campaign.clicks) }}</td>
         <td class="num">{{ money_or_dash(campaign.cpc) }}</td>
         <td class="num">{{ percent(campaign.ctr) }}</td>
-        <td class="num">{{ whole(campaign.tix_sold) }}</td>
+        <td class="num {{ 'tix-strong' if campaign.status == 'live' }}">{{ whole(campaign.tix_sold) }}</td>
         <td class="num">{{ money_or_dash(campaign.cpp) }}</td>
       </tr>
       {% endfor %}
@@ -152,120 +232,121 @@
   </table>
 
   {% if not overview.has_structured_notes and overview.week.notes %}
-  <p class="note">{{ overview.week.notes }}</p>
+  <p class="chapter-note">{{ overview.week.notes }}</p>
   {% endif %}
 
+  {% set ns = namespace(first=true) %}
   {% for group in overview.groups %}
   {% for campaign in group.campaigns %}
-  <section class="section">
-    <div class="banner">{{ campaign.name }} Performance Update ({{ overview.week.label }})</div>
-    {% if campaign.note %}<p class="note">{{ campaign.note }}</p>{% endif %}
+  {% if not ns.first %}<div class="chapter-divider"></div>{% endif %}
+  {% set ns.first = false %}
+  <section>
+
+    <div class="chapter-opener">
+      <div class="chapter-head {{ '' if campaign.status == 'live' else 'is-off' }}">
+        <span class="chapter-name serif {{ '' if campaign.status == 'live' else 'is-off' }}">{{ campaign.event_label }}</span>
+        <span class="chapter-status {{ 'live' if campaign.status == 'live' else 'off' }}">{{ '●' if campaign.status == 'live' else '○' }} {{ status_phrase(campaign.status) }}</span>
+      </div>
+
+      {% if campaign.locations %}
+        {% if campaign.note %}<p class="chapter-note indent">{{ campaign.note }}</p>{% endif %}
+        <div class="kpi-cluster indent">
+          <div class="kpi"><div class="figure">{{ money(campaign.amount_spent) }}</div><div class="label">Ad spend</div></div>
+          <div class="kpi"><div class="figure">{{ whole(campaign.clicks) }}</div><div class="label">Link clicks</div></div>
+          <div class="kpi"><div class="figure">{{ money_or_dash(campaign.cpc) }}</div><div class="label">CPC</div></div>
+          <div class="kpi"><div class="figure">{{ whole(campaign.tix_sold) }}</div><div class="label">Tickets sold</div></div>
+          <div class="kpi"><div class="figure">{{ money_or_dash(campaign.cpp) }}</div><div class="label">CPP</div></div>
+        </div>
+      {% else %}
+        <div class="chapter-sub">Week to {{ overview.week.label }}</div>
+        {% if campaign.amount_spent %}
+        <div class="kpi-cluster small">
+          <div class="kpi"><div class="figure">{{ money(campaign.amount_spent) }}</div><div class="label">Spend</div></div>
+          <div class="kpi"><div class="figure">{{ whole(campaign.tix_sold) }}</div><div class="label">Tickets</div></div>
+          <div class="kpi"><div class="figure">{{ money_or_dash(campaign.cpp) }}</div><div class="label">CPP</div></div>
+        </div>
+        {% elif campaign.note %}
+        <p class="chapter-note indent">{{ campaign.note }}</p>
+        {% else %}
+        <p class="chapter-note muted indent">No spend this week.</p>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {% set summary_lines = bullets(campaign.performance_summary) %}
+    {% if summary_lines|length > 1 %}
+    <div class="section-label sm indent">Performance summary</div>
+    <ul class="bullets indent">{% for line in summary_lines %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% elif summary_lines|length == 1 %}
+    <p class="chapter-note indent">{{ summary_lines[0] }}</p>
+    {% endif %}
 
     {% if campaign.locations %}
-    <table class="data">
+    {% set history_cols = overview.history[-6:] %}
+
+    <div class="section-label sm">This week</div>
+    <table class="city-table">
       <thead>
         <tr>
           <th>City</th>
-          <th>Status</th>
-          <th class="num">Ad spend</th>
-          {% if campaign.show_city_clicks %}
+          <th class="num">Spend</th>
           <th class="num">Clicks</th>
           <th class="num">CPC</th>
-          {% endif %}
-          {% for col in overview.history %}
-          <th class="num">{{ col.label }}</th>
-          {% endfor %}
-          <th class="num">Total tix</th>
+          <th class="num">Tix</th>
           <th class="num">CPP</th>
         </tr>
       </thead>
       <tbody>
         {% for loc in campaign.locations %}
-        <tr>
+        <tr class="{{ 'is-off' if campaign.status != 'live' }}">
           <td>{{ loc.name }}</td>
-          <td class="{{ loc.status }}">{{ status_phrase(loc.status) }}</td>
-          <td class="num">{% if loc.amount_spent is not none %}{{ money(loc.amount_spent) }}{% else %}-{% endif %}</td>
-          {% if campaign.show_city_clicks %}
-          <td class="num">{% if loc.clicks %}{{ whole(loc.clicks) }}{% else %}-{% endif %}</td>
+          <td class="num">{{ money_or_dash(loc.amount_spent) }}</td>
+          <td class="num">{{ whole(loc.clicks) }}</td>
           <td class="num">{{ money_or_dash(loc.cpc) }}</td>
-          {% endif %}
-          {% for tix in loc.tix_history %}
-          <td class="num">{% if tix is not none %}{{ whole(tix) }}{% endif %}</td>
-          {% endfor %}
-          <td class="num">{{ whole(loc.tix_sold) }}</td>
+          <td class="num {{ 'tix-strong' if campaign.status == 'live' }}">{{ whole(loc.tix_sold) }}</td>
           <td class="num">{{ money_or_dash(loc.cpp) }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <div class="totals">
-      <strong>Overall Totals:</strong>
-      <ul class="kpis">
-        <li>Ad Spend: {{ money(campaign.amount_spent) }}</li>
-        <li>Link Clicks: {{ whole(campaign.clicks) }}</li>
-        <li>CPC: {{ money_or_dash(campaign.cpc) }}</li>
-        <li>Total Tickets Sold: {{ whole(campaign.tix_sold) }}</li>
-        <li>CPP: {{ money_or_dash(campaign.cpp) }}</li>
-      </ul>
+    {% if history_cols|length > 1 %}
+    <div class="section-label sm">Tickets by week</div>
+    <div class="ticket-history" style="grid-template-columns: 1.3fr repeat({{ history_cols|length }}, 0.8fr);">
+      <div class="cell head"></div>
+      {% for col in history_cols %}
+      <div class="cell head num {{ 'current' if loop.last }}">{{ col.label }}</div>
+      {% endfor %}
+      {% for loc in campaign.locations %}
+      <div class="cell label {{ 'is-off' if campaign.status != 'live' }}">{{ loc.name }}</div>
+      {% for tix in loc.tix_history[-6:] %}
+      <div class="cell num {{ 'is-off' if campaign.status != 'live' }} {{ 'current' if loop.last }} {{ 'dash' if tix is none and not loop.last }}">{% if tix is not none %}{{ whole(tix) }}{% else %}&ndash;{% endif %}</div>
+      {% endfor %}
+      {% endfor %}
     </div>
-
-    {% if bullets(campaign.performance_summary) %}
-    <ul>
-      {% for line in bullets(campaign.performance_summary) %}
-      <li>{{ line }}</li>
-      {% endfor %}
-    </ul>
-    {% elif campaign.performance_summary %}
-    <p class="note">{{ campaign.performance_summary }}</p>
     {% endif %}
 
-    {% for loc in campaign.locations %}
-    <div class="city">
-      <h3><strong>{{ loc.name }}</strong> — <em>{{ status_phrase(loc.status) }}</em></h3>
-      <ul class="kpis kpis--punch">
-        <li>Ad Spend: {% if loc.amount_spent is not none %}{{ money(loc.amount_spent) }}{% else %}-{% endif %} | Clicks: {{ whole(loc.clicks) }} | CPC: {{ money_or_dash(loc.cpc) }}</li>
-        <li>Tickets Sold: {{ whole(loc.tix_sold) }}{% if loc.cpp is not none %} | CPP: {{ money(loc.cpp) }}{% endif %}</li>
-      </ul>
-      {% if loc.note %}<p class="note">{{ loc.note }}</p>{% endif %}
+    <div class="section-label sm">Cities</div>
+    <div class="city-list">
+      {% for loc in campaign.locations %}
+      <div class="city-block {{ 'is-off' if campaign.status != 'live' }}">
+        <span class="city-name serif">{{ loc.name }}</span>
+        <span class="city-recap">&nbsp;&middot;&nbsp; {{ money_or_dash(loc.amount_spent) }} spend &middot; {{ whole(loc.tix_sold) }} tickets &middot; {{ money_or_dash(loc.cpp) }} CPP</span>
+        {% if loc.note %}<div class="city-note">{{ loc.note }}</div>{% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-
-    {% else %}
-    <ul class="kpis">
-      <li>Ad Spend: {{ money(campaign.amount_spent) }}</li>
-      <li>Clicks: {{ whole(campaign.clicks) }}</li>
-      <li>CPC: {{ money_or_dash(campaign.cpc) }}</li>
-      <li>CTR: {{ percent(campaign.ctr) }}</li>
-      <li>Tickets Sold: {{ whole(campaign.tix_sold) }}</li>
-      <li>CPP: {{ money_or_dash(campaign.cpp) }}</li>
-    </ul>
-    {% if bullets(campaign.performance_summary) %}
-    <p><strong>Performance Summary:</strong></p>
-    <ul>
-      {% for line in bullets(campaign.performance_summary) %}
-      <li>{{ line }}</li>
-      {% endfor %}
-    </ul>
-    {% elif campaign.performance_summary %}
-    <p><strong>Performance Summary:</strong></p>
-    <p class="note">{{ campaign.performance_summary }}</p>
-    {% endif %}
     {% endif %}
 
-    {% if bullets(campaign.next_steps) %}
-    <p><strong>Next Steps:</strong></p>
-    <ul>
-      {% for line in bullets(campaign.next_steps) %}
-      <li>{{ line }}</li>
-      {% endfor %}
-    </ul>
-    {% elif campaign.next_steps %}
-    <p><strong>Next Steps:</strong></p>
-    <p class="note">{{ campaign.next_steps }}</p>
+    {% set steps = bullets(campaign.next_steps) %}
+    {% if steps %}
+    <div class="section-label sm {{ 'indent' if not campaign.locations }}">Next steps</div>
+    <ul class="bullets {{ 'indent' if not campaign.locations }}">{% for line in steps %}<li>{{ line }}</li>{% endfor %}</ul>
     {% endif %}
+
   </section>
   {% endfor %}
   {% endfor %}
+
 </body>
 </html>

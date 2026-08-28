@@ -2,7 +2,7 @@
 
 ## Compact shell
 
-Abbitomator has five dashboard pages (Tracker, Overview, Weeks, Monthly, Settings) plus login. Do not add a sidebar.
+Abbitomator has five dashboard pages (Overview, Weeks, Monthly, Settings, Tester) plus login. Do not add a sidebar. Overview is the landing page (`/` redirects there) because it is the daily workspace. Tester is a dev tool and sits behind a `.topbar__sep` after the report pages.
 
 ```
 body
@@ -10,7 +10,7 @@ body
   header.topbar
     a.brand
     .topbar__actions
-      nav.topbar__nav  (Tracker, Overview, Weeks, Monthly, Settings)
+      nav.topbar__nav  (Overview, Weeks, Monthly, Settings | Tester)
       #btn-theme
   main.view#content
     .view__hero
@@ -80,6 +80,29 @@ When `status == done` and the output exists, show `.player` pointing at `/jobs/{
 
 Field kinds: `text`, `secret`, `number`, `select`, `check`. Cookies are a file on the data volume (`cookies.txt`), not a settings.json field.
 
+## Week-scoped report page (Overview)
+
+Order matters — scope, then summary, then detail:
+
+1. `.scopebar` — week stepper + "Write the letter" link. Everything below is scoped by it.
+2. `.banner--ok` / `.banner--bad` for feedback (success auto-hides after ~2.6s)
+3. `.kpis` with `.kpi__delta` week-over-week movement
+4. One `.panel` — head holds the title plus **+ Add campaign**; body is the `.tbl.tbl--overview` with click-to-edit `.cellv` cells and nested city blocks, then `.empty.empty--overview` when there are no rows. Spend / clicks / tickets are typed on cities; the campaign line is their total. Adding a campaign already includes a city row (placeholder Default).
+
+Do not stack a create form above the data. The table is what the user came for; the create affordance is a button in the panel head that reveals `.tbl__row--add` inside the table. Weeks (`+ New week`) follows the same shape.
+
+Destructive actions confirm and say what they affect: removing a campaign drops **this week's line only** (it stays available for other weeks); deleting a city removes it from **every week**; deleting a week drops **that week's numbers and letter notes only** (campaigns stay).
+
+**Editing must not fight the typist.** A numeric edit refreshes only the calculated cells (CPC, CPP, city sums and grand totals, KPIs) via `data-row` / `data-cell` hooks, so focus and tab order survive. Only structural edits (name, platform, status) and add/delete redraw the table, because those can reorder rows.
+
+## Week letter (Weeks → detail)
+
+Same `.scopebar` as Overview (prev / week select / next, plus All weeks and Overview). Then one `.panel` with Generate comments / Download PDF. Switching week reloads the letter fields.
+
+## Monthly
+
+Same scope-then-summary order as Overview: `.scopebar` (prev / month **name** select / year / next, plus Download presentation) → `.kpis` → one `.panel` with the week table and `.empty.empty--weeks`. Never ask for a month as a bare number input.
+
 ## New page
 
 1. Use `Dashboard.astro`
@@ -87,6 +110,10 @@ Field kinds: `text`, `secret`, `number`, `select`, `check`. Cookies are a file o
 3. Use hero + panel
 4. Add copy per [i18n.md](i18n.md)
 5. Do not create a second stylesheet
+
+## Feedback
+
+Every write tells the user it happened. Inline cell edits flash `.is-saved`; row-level actions post a `.banner--ok` that clears itself after ~2.6s; failures set `.is-invalid` on the offending control **and** show `.banner--bad`. No page in this app may save silently or swallow a rejected promise — every `load()` chain ends in a `.catch` that renders the message.
 
 ## Responsive
 
