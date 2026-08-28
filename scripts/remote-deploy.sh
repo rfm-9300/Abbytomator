@@ -8,7 +8,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-$HOME/abbitomator}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 TAG="${TAG:-latest}"
-REGISTRY_IMAGE="${REGISTRY_IMAGE:-ghcr.io/rfm-9300/abbitomator}"
+REGISTRY_IMAGE="${REGISTRY_IMAGE:-ghcr.io/rfm-9300/abbytomator}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-30}"
 HEALTH_SLEEP_SECONDS="${HEALTH_SLEEP_SECONDS:-2}"
 

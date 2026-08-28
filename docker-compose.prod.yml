@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/rfm-9300/abbitomator:${TAG:-latest}
+    image: ghcr.io/rfm-9300/abbytomator:${TAG:-latest}
     container_name: abbitomator-web
     env_file:
       - path: .env

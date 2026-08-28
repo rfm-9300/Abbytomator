@@ -16,7 +16,7 @@ Open [http://127.0.0.1:4321](http://127.0.0.1:4321) and sign in with the credent
 
 Use Python 3.11 for the API venv (system 3.14 may lack `ensurepip`). On macOS, WeasyPrint needs `brew install pango`. The API listens on `:8001` (`GET /health` is unauthenticated) so it does not collide with Extractor on `:8000`.
 
-GitHub: [rfm-9300/Abbytomator](https://github.com/rfm-9300/Abbytomator). Pushes to `main` run tests, publish `ghcr.io/rfm-9300/abbitomator`, and deploy to `extractor-vps`. See `DEPLOYMENT_RUNBOOK.md`.
+GitHub: [rfm-9300/Abbytomator](https://github.com/rfm-9300/Abbytomator). Pushes to `main` run tests, publish `ghcr.io/rfm-9300/abbytomator`, and deploy to `extractor-vps`. See `DEPLOYMENT_RUNBOOK.md`.
 
 ## Layout
 

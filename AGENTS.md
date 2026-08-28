@@ -56,7 +56,7 @@ Use [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) as the source of truth. Pushe
 - Production app directory on the VPS: `~/abbitomator`
 - Production compose file: `docker-compose.prod.yml`
 - Caddy: Extractor’s `~/hillsong-aggregator` (`Caddyfile` + `docker-compose.caddy.yml`)
-- Production image: `ghcr.io/rfm-9300/abbitomator:${TAG:-latest}`
+- Production image: `ghcr.io/rfm-9300/abbytomator:${TAG:-latest}`
 - Public URL: `http://172.233.116.75:8081`
 
 ## Deployment Rules

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REGISTRY_IMAGE="${REGISTRY_IMAGE:-ghcr.io/rfm-9300/abbitomator}"
+REGISTRY_IMAGE="${REGISTRY_IMAGE:-ghcr.io/rfm-9300/abbytomator}"
 TAG="${TAG:-latest}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 FULL_IMAGE_NAME="${REGISTRY_IMAGE}:${TAG}"

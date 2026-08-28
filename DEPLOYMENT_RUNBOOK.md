@@ -16,7 +16,7 @@ port `8081` through the same Caddy container.
 
 | Component | Runtime | Deployed by this pipeline? |
 |-----------|---------|----------------------------|
-| App | Docker image `ghcr.io/rfm-9300/abbitomator` — FastAPI + built Astro UI on port 8001 | Yes |
+| App | Docker image `ghcr.io/rfm-9300/abbytomator` — FastAPI + built Astro UI on port 8001 | Yes |
 | Data | Docker volume `abbitomator_data` → `/data` (SQLite, generated PDFs) | Left mounted (not wiped) |
 | Caddy | Extractor’s `docker-compose.caddy.yml` | **No** — only recreate Caddy when those files change |
 | Extractor | `~/hillsong-aggregator` on `:80` | **No** — do not `down` that stack |
@@ -28,7 +28,7 @@ port `8081` through the same Caddy container.
 - Production directory: `~/abbitomator`
 - Compose file: `docker-compose.prod.yml`
 - Caddy lives in Extractor’s `~/hillsong-aggregator` (`Caddyfile` + `docker-compose.caddy.yml`)
-- Image: `ghcr.io/rfm-9300/abbitomator:${TAG:-latest}`
+- Image: `ghcr.io/rfm-9300/abbytomator:${TAG:-latest}`
 - Public URL: `http://172.233.116.75:8081`
 - Health endpoint: `/health` (unauthenticated)
 
@@ -117,7 +117,7 @@ ssh extractor-vps "cd ~/hillsong-aggregator && docker compose -f docker-compose.
 ./deploy.sh
 ```
 
-By default this builds and pushes `ghcr.io/rfm-9300/abbitomator:latest`.
+By default this builds and pushes `ghcr.io/rfm-9300/abbytomator:latest`.
 
 ### Sync deploy files and restart
 
