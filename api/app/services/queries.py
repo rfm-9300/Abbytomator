@@ -10,6 +10,9 @@ from app.metrics import cpc, cpp, ctr
 from app.models import Campaign, Client, Location, Week, WeekCampaignMetric, WeekLocationMetric
 from app.services.csv_source import is_ignored_campaign
 
+# KPI cards on Overview show a trend sparkline over this many recent weeks.
+SPARKLINE_WEEKS = 8
+
 
 def require_client(db: Session, slug: str = CLIENT_SLUG) -> Client:
     client = db.scalar(select(Client).where(Client.slug == slug))
@@ -204,6 +207,13 @@ def overview_for_week(db: Session, week: Week, *, include_previous: bool = True)
         )
 
     grouped.sort(key=lambda g: g["event_label"].lower())
+    totals = {
+        "amount_spent": float(grand_spend),
+        "clicks": grand_clicks,
+        "tix_sold": grand_tix,
+        "cpc": float(cpc(grand_spend, grand_clicks)) if cpc(grand_spend, grand_clicks) is not None else None,
+        "cpp": float(cpp(grand_spend, grand_tix)) if cpp(grand_spend, grand_tix) is not None else None,
+    }
     previous = None
     if include_previous and len(history) >= 2:
         prior = history[-2]
@@ -211,20 +221,27 @@ def overview_for_week(db: Session, week: Week, *, include_previous: bool = True)
             "label": week_label(prior),
             "totals": overview_for_week(db, prior, include_previous=False)["totals"],
         }
+    # KPI sparklines on Overview read the last few weeks' totals — only computed on
+    # the outer call, mirroring `previous` above, so the nested calls stay O(1).
+    history_totals = None
+    if include_previous:
+        history_totals = [
+            {
+                "id": item.id,
+                "label": week_label(item),
+                "totals": totals if item.id == week.id else overview_for_week(db, item, include_previous=False)["totals"],
+            }
+            for item in history[-SPARKLINE_WEEKS:]
+        ]
     return {
         "week": week_payload(week),
         "account_manager": ACCOUNT_MANAGER,
         "history": history_payload,
+        "history_totals": history_totals,
         "previous": previous,
         "has_structured_notes": has_structured_notes,
         "groups": grouped,
-        "totals": {
-            "amount_spent": float(grand_spend),
-            "clicks": grand_clicks,
-            "tix_sold": grand_tix,
-            "cpc": float(cpc(grand_spend, grand_clicks)) if cpc(grand_spend, grand_clicks) is not None else None,
-            "cpp": float(cpp(grand_spend, grand_tix)) if cpp(grand_spend, grand_tix) is not None else None,
-        },
+        "totals": totals,
     }
 
 
