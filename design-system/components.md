@@ -27,7 +27,9 @@ Class names as implemented in `web/public/style.css`. Copy these. Strings in exa
 
 Theme button **must** keep `id="btn-theme"` — `theme.js` binds to it. It contains sun/moon SVGs (`.theme-icon--sun` / `.theme-icon--moon`); do not set `textContent` on the button.
 
-Mark the current page with `aria-current="page"` on the matching topbar link. `.topbar__actions .btn[aria-current="page"]` gives it a surface fill so Sermons / Channels / Branding / Settings stay distinct.
+Mark the current page with `aria-current="page"` on the matching topbar link. `.topbar__actions .btn[aria-current="page"]` gives it a `--surface-2` fill so Sermons / Channels / Branding / Settings stay distinct.
+
+Abbitomator's `.brand__mark` is the "tb." monogram, not initials: `var(--mono)`, `var(--accent)` text on a `var(--brand-mark)` fill, `1px solid var(--hairline-strong)` border (that border matters — `--brand-mark` is near-black in both themes and would otherwise merge into a dark `--surface`). See [tokens.md](tokens.md#color--dark-htmldata-themedark) and the studio signature below.
 
 Action rows that may wrap: `.row.row--wrap`. Overflow actions: `.menu` (`<details>` + `.menu__list`).
 
@@ -109,6 +111,7 @@ Week checklist:
 - `.btn--primary` / `.btn--accent` — gradient CTA
 - `.btn--ghost` — secondary
 - `.btn--danger` — irreversible
+- `.btn--dark` — the studio's black, for the one action that should read as ink-on-paper rather than the gold gradient (Overview's **+ Add campaign**). Same `var(--brand-mark)` fill + hairline border as the brand mark; hover fills `--accent-deep`.
 - `.btn--sm` — compact
 - Do not use a raw `<button>` or `.button` without `.btn`
 
@@ -149,7 +152,7 @@ Reporting tables (Overview, Monthly): `main.view.view--wide` so the 9-column cam
 </section>
 ```
 
-Form panels wrap fields in `.panel__body`. Job-detail heads that stack title + pill use `.panel__head--stack`.
+Form panels wrap fields in `.panel__body`. Job-detail heads that stack title + pill use `.panel__head--stack`. `.panel__title` is a routine uppercase label; the one panel that's the product's main workspace (Overview's **Campaigns**) gets `.panel__title--loud` instead — larger, sentence case, `--ink` not `--ink-mute`. Don't reach for it elsewhere; a page of loud panel titles reads as no hierarchy at all.
 
 Cell helpers: `.name` `.muted` `.mono`. Clickable rows: `tr[data-href]`. Row download: `.tbl__actions`. Compact recents: `.queue-list` / `.queue-list__item`.
 
@@ -176,6 +179,8 @@ Empty modifiers: `.empty--sermons` `.empty--channels` `.empty--brand`.
 Jobs list **and** job detail use the friendly map in `app/progress.py` (`Waiting` / `Working` / `Ready` / `Failed`). Visual tone is still the CSS pill class.
 
 Pills for watch-channel status: watching → `pill--ok`, paused → `pill` (default), error → `pill--bad`. Job rows from watch still use the job-status map above.
+
+The leading dot (`.pill::before`) is `currentColor` on a toned pill (`--ok`/`--warn`/`--bad`/`--info`/`--accent`), so it always matches the text. The bare `.pill` (no tone — an "off"/paused state) is the one exception: its text is `--ink-2` but its dot is `--ink-faint`, a shade quieter, so an inactive row reads as *off*, not just *another color*.
 
 Low-confidence cut warning: `.banner.banner--warn`.
 
@@ -355,9 +360,10 @@ Use the shared vocabulary before inventing classes:
 - Toast → `.toast`
 - Drawer form → `.drawer`
 - Auth card → `.login` wrapping a `.panel` on `/login`. `main.view:has(> .login)` centers it on
-  a faint dot-grid background. `.login__brand` (`.login__mark` + `.login__name` +
-  `.login__tagline`) sits above the panel; `.login__heading` / `.login__sub` open the form in
-  place of a `.panel__head`; `.login__footer` is the closing tagline below the panel.
+  plain `--bg` (no decorative wash — the topbar's "tb." mark is the page's only ornament).
+  `.login__brand` (`.login__mark` + `.login__name` + `.login__tagline`) sits above the panel;
+  `.login__heading` / `.login__sub` open the form in place of a `.panel__head`; `.login__footer`
+  is the closing tagline below the panel.
 
 ## Abbitomator reporting
 
@@ -383,17 +389,73 @@ The Overview table is the product's main workspace, so it must read as a **repor
 
 Row structure: one `tbody.tbl__block` per campaign (add `.tbl__block--split` when it has cities). City `.tbl__row--city`, parent `.tbl__row--parent`, totals `.tbl__row--total` in `tfoot` (below the add-campaign row), inline create `.tbl__row--add`. Cities keep every column so they line up with the campaign — do not colspan the name. Mark a city with `.tbl__city` + `.tbl__branch` in the Campaign column and a muted “City” label in Status.
 
-A split campaign is a **block**, not extra campaigns: accent rail on the first cell, shared `.surface-2` wash, campaign spend / clicks / tix use `.tbl__rolled` (they are the city sum, never typed on the campaign) plus a `.tbl__count` (“5 cities”). CTR stays on the campaign. **Add city** is a `.tbl__addcity.tbl__addcity--row` text control on the campaign row, visible on hover/focus — never a permanent empty row under the cities. The extra-city form starts hidden; ✕ or Escape closes it. After a successful add, close the form.
+A split campaign is a **block**, not extra campaigns: accent rail on the first cell, shared `.surface-2` wash, campaign spend / clicks / tix use `.tbl__rolled` (they are the city sum, never typed on the campaign) plus a `.tbl__count` button (“5 cities”) with a `.tbl__toggle` chevron. Click the count to hide or show city rows (`aria-expanded`, `.tbl__block--collapsed`). Collapsed IDs persist in `sessionStorage` (`abbitCitiesCollapsed`) so a table refresh or week change keeps the choice. Default is expanded. **Add city** expands first, then opens the form. CTR stays on the campaign. **Add city** is a `.tbl__addcity.tbl__addcity--row` text control on the campaign row, visible on hover/focus — never a permanent empty row under the cities. The extra-city form starts hidden; ✕ or Escape closes it. After a successful add, close the form.
 
 Create rows live **inside the table**, revealed by a button in `.panel__head`. **+ Add campaign** opens two rows: campaign identity (platform, name, status, CTR) and a city row already underneath. City name placeholder is `Default` — leave it blank to store “Default” so numbers have a home before real cities exist. Spend / clicks / tix on that city row. Enter submits, Escape closes.
 
 ### Week scope bar
 
-`.scopebar` is the pill-shaped control bar above the KPIs on week-scoped pages: `.scopebar__label`, a `.scopebar__step` (prev `.iconbtn--sm`, `.sel`, next `.iconbtn--sm`), `.scopebar__spacer`, then secondary links. Options are newest-first, so "previous" moves *down* the list.
+`.scopebar` is the pill-shaped control bar above the KPIs on week-scoped pages (Weeks detail, Monthly): `.scopebar__label`, a `.scopebar__step` (prev `.iconbtn--sm`, `.sel`, next `.iconbtn--sm`), `.scopebar__spacer`, then secondary links. Options are newest-first, so "previous" moves *down* the list.
+
+Overview folds the same step control into its hero instead of a full-width bar — see **Personalized hero** below. Reuse the `.scopebar__label` / `.scopebar__step` pieces there; don't reuse `.scopebar` itself, its `.scopebar__spacer` assumes full width.
 
 ### KPI strip
 
 `.kpis` > `.kpi` > `.kpi__label` + `.kpi__value` + optional `.kpi__delta`. A bare number answers nothing, so show the week-over-week change: `.kpi__delta--good` / `--bad` by whether the movement is *desirable* (CPP falling is good), plain `.kpi__delta` when flat or on the first week. Stacked panels: `.stack`.
+
+Overview's KPI cards extend the base pattern with an icon and a trend sparkline — the plain form above (Monthly) is still correct where there's no per-week history to plot:
+
+```html
+<div class="kpi">
+  <div class="kpi__head">
+    <span class="kpi__icon" aria-hidden="true">$</span>
+    <p class="kpi__label">Spend</p>
+  </div>
+  <div>
+    <p class="kpi__value" data-kpi="spend">£18,420</p>
+    <p class="kpi__delta kpi__delta--good" data-delta="spend">↑ 16% vs last week</p>
+  </div>
+  <div class="kpi__spark" data-spark="spend">
+    <span class="kpi__bar" style="height: 10px"></span>
+    <span class="kpi__bar kpi__bar--current" style="height: 22px"></span>
+  </div>
+</div>
+```
+
+Bars come from the API's `history_totals` (last `SPARKLINE_WEEKS` weeks, oldest → newest, current week last) — never invent trend data. Height is proportional to the max value in that set; the last bar (`.kpi__bar--current`) is full `--accent`, the rest `--accent-soft`. Fewer than two points of history → leave `.kpi__spark` empty, don't draw a single meaningless bar.
+
+### Personalized hero (Overview)
+
+Overview replaces the generic `.view__hero` with its own greeting + week pill, via `<Dashboard hero={false}>`:
+
+```html
+<div class="ov-hero">
+  <div class="ov-hero__greeting">
+    <p class="ov-hero__kicker">Welcome back,</p>
+    <h1 class="ov-hero__title"><span id="hero-name">Abby</span> <em aria-hidden="true">♡</em></h1>
+    <p class="ov-hero__tagline">Track. Optimize. Fly higher.</p>
+    <span class="ov-hero__rule" aria-hidden="true"></span>
+  </div>
+  <div class="ov-week"> … `.scopebar__label` / `.scopebar__step`, then `.ov-week__sep` + `.ov-week__link` … </div>
+</div>
+```
+
+The name is not hardcoded copy — it's `overview.account_manager` from the API, written into `#hero-name` on first load. Fall back to the static "Abby" in the markup only until data arrives.
+
+Below the hero, `.ov-grid` (2.6fr / 1fr) pairs `.kpis` with `.ov-side`: an `.ov-goal` card (week-goal card — `.ov-goal__photo` is a placeholder gradient today, swap for a real photo via `background-image` when there is one) and an `.ov-insight` card. Insight copy is computed from the same week-over-week CPP comparison as the KPI deltas — never a static line; when there's no prior week to compare, say so instead of guessing. Hide `#ov-grid` (not just `.kpis`) when there's no week selected, same as the empty state.
+
+A footer row closes the page: `.ov-footer__quote` (the running tagline) beside `.stamp` (see below). Both are Overview-only — don't copy them onto Weeks/Monthly/Settings, the mock doesn't either.
+
+### Studio signature (stamp)
+
+`.stamp` is the quiet "tb." + "the bots lab" credit, once per page, bottom-right of the main content — the studio's signature, not a repeated logo bar. Same `--brand-mark` fill + hairline border as `.brand__mark`, just smaller (`.stamp__mark`, 24×24):
+
+```html
+<div class="stamp">
+  <span class="stamp__mark" aria-hidden="true">tb.</span>
+  <span class="stamp__text">the bots lab</span>
+</div>
+```
 
 Empty states may carry one CTA in `.empty__action`.
 

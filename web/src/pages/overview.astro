@@ -2,52 +2,111 @@
 import Dashboard from "../layouts/Dashboard.astro";
 ---
 
-<Dashboard
-  title="Report Overview"
-  current="overview"
-  description="Campaign totals are the cities underneath. Leave the city as Default if you are not splitting yet."
->
-  <div class="scopebar">
-    <span class="scopebar__label" id="week-label">Week</span>
-    <div class="scopebar__step">
-      <button class="iconbtn iconbtn--sm" id="week-prev" type="button" aria-label="Previous week">‹</button>
-      <select class="sel" id="week-select" aria-labelledby="week-label"></select>
-      <button class="iconbtn iconbtn--sm" id="week-next" type="button" aria-label="Next week">›</button>
+<Dashboard title="Report Overview" current="overview" hero={false}>
+  <div class="ov-hero">
+    <div class="ov-hero__greeting">
+      <p class="ov-hero__kicker">Welcome back,</p>
+      <h1 class="ov-hero__title"><span id="hero-name">Abby</span> <em aria-hidden="true">♡</em></h1>
+      <p class="ov-hero__tagline">Track. Optimize. Fly higher.</p>
+      <span class="ov-hero__rule" aria-hidden="true"></span>
     </div>
-    <span class="scopebar__spacer"></span>
-    <a class="btn btn--ghost btn--sm" id="open-week" href="/weeks">Write the letter</a>
+    <div class="ov-week">
+      <span class="scopebar__label" id="week-label">Week</span>
+      <div class="scopebar__step">
+        <button class="iconbtn iconbtn--sm" id="week-prev" type="button" aria-label="Previous week">‹</button>
+        <select class="sel" id="week-select" aria-labelledby="week-label"></select>
+        <button class="iconbtn iconbtn--sm" id="week-next" type="button" aria-label="Next week">›</button>
+      </div>
+      <span class="ov-week__sep" aria-hidden="true"></span>
+      <a class="ov-week__link" id="open-week" href="/weeks">Write the letter →</a>
+    </div>
   </div>
 
   <p class="banner banner--ok" id="overview-ok" hidden></p>
   <p class="banner banner--bad" id="overview-error" hidden></p>
 
-  <div class="kpis" id="kpis" hidden>
-    <div class="kpi">
-      <p class="kpi__label">Spend</p>
-      <p class="kpi__value" data-kpi="spend">—</p>
-      <p class="kpi__delta" data-delta="spend"></p>
+  <div class="ov-grid" id="ov-grid" hidden>
+    <div class="kpis" id="kpis">
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__icon" aria-hidden="true">$</span>
+          <p class="kpi__label">Spend</p>
+        </div>
+        <div>
+          <p class="kpi__value" data-kpi="spend">—</p>
+          <p class="kpi__delta" data-delta="spend"></p>
+        </div>
+        <div class="kpi__spark" data-spark="spend"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__icon" aria-hidden="true">#</span>
+          <p class="kpi__label">Tix sold</p>
+        </div>
+        <div>
+          <p class="kpi__value" data-kpi="tix">—</p>
+          <p class="kpi__delta" data-delta="tix"></p>
+        </div>
+        <div class="kpi__spark" data-spark="tix"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__icon" aria-hidden="true">◎</span>
+          <p class="kpi__label">CPP</p>
+        </div>
+        <div>
+          <p class="kpi__value" data-kpi="cpp">—</p>
+          <p class="kpi__delta" data-delta="cpp"></p>
+        </div>
+        <div class="kpi__spark" data-spark="cpp"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__icon" aria-hidden="true">↗</span>
+          <p class="kpi__label">Clicks</p>
+        </div>
+        <div>
+          <p class="kpi__value" data-kpi="clicks">—</p>
+          <p class="kpi__delta" data-delta="clicks"></p>
+        </div>
+        <div class="kpi__spark" data-spark="clicks"></div>
+      </div>
     </div>
-    <div class="kpi">
-      <p class="kpi__label">Tix sold</p>
-      <p class="kpi__value" data-kpi="tix">—</p>
-      <p class="kpi__delta" data-delta="tix"></p>
-    </div>
-    <div class="kpi">
-      <p class="kpi__label">CPP</p>
-      <p class="kpi__value" data-kpi="cpp">—</p>
-      <p class="kpi__delta" data-delta="cpp"></p>
-    </div>
-    <div class="kpi">
-      <p class="kpi__label">Clicks</p>
-      <p class="kpi__value" data-kpi="clicks">—</p>
-      <p class="kpi__delta" data-delta="clicks"></p>
+
+    <div class="ov-side">
+      <div class="ov-goal">
+        <div class="ov-goal__photo" aria-hidden="true"></div>
+        <div class="ov-goal__body">
+          <div class="ov-goal__badge">
+            <span class="ov-goal__chip" aria-hidden="true"></span>
+            <span class="ov-goal__label">Week goal</span>
+          </div>
+          <p class="ov-goal__quip">More impact. More freedom. Let's go!</p>
+          <div class="ov-goal__stats">
+            <span class="ov-goal__pct">75%</span>
+            <span class="ov-goal__of">of weekly goal</span>
+          </div>
+          <div class="ov-goal__bar"><span class="ov-goal__fill" style="width:75%"></span></div>
+        </div>
+      </div>
+
+      <div class="ov-insight">
+        <div class="ov-insight__head">
+          <span class="ov-insight__icon" aria-hidden="true">i</span>
+          <p class="ov-insight__label">Insight</p>
+        </div>
+        <p class="ov-insight__text" id="insight-text">Add a comparison week to see this week's insight.</p>
+        <a class="ov-insight__link" href="/weeks">See full insights →</a>
+      </div>
     </div>
   </div>
 
+  <p class="hint">Campaign totals are the cities underneath — leave the city as Default if you aren't splitting yet.</p>
+
   <section class="panel">
     <div class="panel__head">
-      <h2 class="panel__title">Campaigns</h2>
-      <button class="btn btn--primary btn--sm" id="show-add" type="button" hidden>+ Add campaign</button>
+      <h2 class="panel__title panel__title--loud">Campaigns</h2>
+      <button class="btn btn--dark" id="show-add" type="button" hidden>+ Add campaign</button>
     </div>
     <div class="tbl-wrap">
       <table class="tbl tbl--overview" id="overview-table">
@@ -119,10 +178,18 @@ import Dashboard from "../layouts/Dashboard.astro";
       <p class="empty__action"><a class="btn btn--primary btn--sm" href="/weeks">Create a week</a></p>
     </div>
   </section>
+
+  <div class="ov-footer">
+    <p class="ov-footer__quote">"Discipline today. Freedom tomorrow." — Future You ♡</p>
+    <div class="stamp">
+      <span class="stamp__mark" aria-hidden="true">tb.</span>
+      <span class="stamp__text">the bots lab</span>
+    </div>
+  </div>
 </Dashboard>
 
 <script>
-  import { api, type Overview } from "../lib/api";
+  import { api, type Overview, type Totals } from "../lib/api";
   import { money, percent, percentInput, whole, escapeHtml } from "../lib/format";
 
   type Group = Overview["groups"][number];
@@ -140,7 +207,10 @@ import Dashboard from "../layouts/Dashboard.astro";
   const emptyTitle = empty.querySelector(".empty__title") as HTMLElement;
   const emptyDesc = empty.querySelector(".empty__desc") as HTMLElement;
   const emptyAction = empty.querySelector(".empty__action") as HTMLElement;
+  const ovGrid = document.getElementById("ov-grid") as HTMLElement;
   const kpis = document.getElementById("kpis") as HTMLElement;
+  const insightText = document.getElementById("insight-text") as HTMLElement;
+  const heroName = document.getElementById("hero-name") as HTMLElement;
   const error = document.getElementById("overview-error") as HTMLElement;
   const ok = document.getElementById("overview-ok") as HTMLElement;
   const addRow = document.getElementById("add-row") as HTMLTableRowElement;
@@ -150,6 +220,52 @@ import Dashboard from "../layouts/Dashboard.astro";
 
   let currentWeekId: number | null = null;
   let hasRows = false;
+  const COLLAPSED_KEY = "abbitCitiesCollapsed";
+  const collapsedCities = loadCollapsed();
+
+  function loadCollapsed(): Set<number> {
+    try {
+      const raw = sessionStorage.getItem(COLLAPSED_KEY);
+      if (!raw) return new Set();
+      const ids = JSON.parse(raw) as unknown;
+      return new Set(Array.isArray(ids) ? ids.map(Number).filter((id) => Number.isFinite(id)) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function persistCollapsed() {
+    sessionStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedCities]));
+  }
+
+  function citiesExpanded(campaignId: number): boolean {
+    return !collapsedCities.has(campaignId);
+  }
+
+  function setCitiesExpanded(campaignId: number, expanded: boolean) {
+    if (expanded) collapsedCities.delete(campaignId);
+    else {
+      collapsedCities.add(campaignId);
+      closeCityForm(String(campaignId));
+    }
+    persistCollapsed();
+    applyCitiesVisibility(campaignId);
+  }
+
+  function applyCitiesVisibility(campaignId: number) {
+    const parent = table.querySelector(`[data-row="c${campaignId}"]`);
+    const block = parent?.closest("tbody");
+    if (!block) return;
+    const expanded = citiesExpanded(campaignId);
+    block.classList.toggle("tbl__block--collapsed", !expanded);
+    const toggle = block.querySelector<HTMLButtonElement>(`[data-cities-toggle="${campaignId}"]`);
+    if (!toggle) return;
+    const count = Number(toggle.dataset.count || "0");
+    const noun = count === 1 ? "city" : "cities";
+    toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    toggle.title = expanded ? "Hide cities" : "Show cities";
+    toggle.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${count} ${noun}`);
+  }
 
   const addFields = {
     platform: document.getElementById("add-platform") as HTMLInputElement,
@@ -237,6 +353,52 @@ import Dashboard from "../layouts/Dashboard.astro";
       el.textContent = result.text;
       el.className = `kpi__delta ${result.tone}`.trim();
     }
+
+    const points = overview.history_totals ?? [];
+    renderSpark("spend", points, (t) => t.amount_spent);
+    renderSpark("tix", points, (t) => t.tix_sold);
+    renderSpark("cpp", points, (t) => t.cpp);
+    renderSpark("clicks", points, (t) => t.clicks);
+    renderInsight(overview);
+  }
+
+  /** Trend bars over the last few weeks (`overview.history_totals`), last bar = this week. */
+  function renderSpark(key: string, points: { totals: Totals }[], pick: (t: Totals) => number | null) {
+    const el = kpis.querySelector(`[data-spark="${key}"]`);
+    if (!el) return;
+    if (points.length < 2) {
+      el.innerHTML = "";
+      return;
+    }
+    const values = points.map((p) => pick(p.totals) ?? 0);
+    const max = Math.max(...values, 0.0001);
+    el.innerHTML = values
+      .map((v, i) => {
+        const h = Math.max(2, Math.round((v / max) * 22));
+        const cls = i === values.length - 1 ? "kpi__bar kpi__bar--current" : "kpi__bar";
+        return `<span class="${cls}" style="height:${h}px"></span>`;
+      })
+      .join("");
+  }
+
+  /** One-line CPP read-out for the Insight card, from the same week-over-week comparison as the KPI deltas. */
+  function renderInsight(overview: Overview) {
+    if (!insightText) return;
+    const prior = overview.previous;
+    const cpp = overview.totals.cpp;
+    if (!prior || prior.totals.cpp == null || cpp == null || prior.totals.cpp === 0) {
+      insightText.textContent = "Add a comparison week to see this week's insight.";
+      return;
+    }
+    const change = ((cpp - prior.totals.cpp) / prior.totals.cpp) * 100;
+    if (Math.abs(change) < 0.5) {
+      insightText.textContent = `Your CPP held steady vs ${prior.label}. Keep the current mix running.`;
+      return;
+    }
+    const improved = change < 0;
+    insightText.textContent = improved
+      ? `Your CPP improved by ${Math.abs(change).toFixed(1)}% this week. Keep scaling what's working and testing new angles.`
+      : `Your CPP rose ${Math.abs(change).toFixed(1)}% this week vs ${prior.label}. Worth a look before the next push.`;
   }
 
   /* ---------- cell values ---------- */
@@ -289,7 +451,11 @@ import Dashboard from "../layouts/Dashboard.astro";
     const id = campaign.id;
     const safe = escapeHtml(campaign.name);
     const count = campaign.locations.length;
-    const countLabel = hasCities ? `<span class="tbl__count">${count} ${count === 1 ? "city" : "cities"}</span>` : "";
+    const expanded = citiesExpanded(id);
+    const noun = count === 1 ? "city" : "cities";
+    const countLabel = hasCities
+      ? `<button class="tbl__count" type="button" data-cities-toggle="${id}" data-count="${count}" aria-expanded="${expanded ? "true" : "false"}" title="${expanded ? "Hide cities" : "Show cities"}" aria-label="${expanded ? "Hide" : "Show"} ${count} ${noun}"><span class="tbl__toggle" aria-hidden="true"></span>${count} ${noun}</button>`
+      : "";
     const addCity = `<button class="tbl__addcity tbl__addcity--row" data-city-toggle="${id}" type="button">Add city</button>`;
     return `
       <tr data-row="c${id}" class="${hasCities ? "tbl__row--parent" : ""}">
@@ -356,6 +522,7 @@ import Dashboard from "../layouts/Dashboard.astro";
   function openCityForm(campaignId: string) {
     const form = table.querySelector<HTMLTableRowElement>(`[data-city-form="${campaignId}"]`);
     if (!form) return;
+    setCitiesExpanded(Number(campaignId), true);
     form.hidden = false;
     (form.querySelector('[name="name"]') as HTMLInputElement)?.focus();
   }
@@ -376,9 +543,10 @@ import Dashboard from "../layouts/Dashboard.astro";
   /* ---------- full render ---------- */
 
   function render(overview: Overview) {
+    if (overview.account_manager) heroName.textContent = overview.account_manager;
     const hasWeek = Boolean(overview.week);
     hasRows = overview.groups.some((group) => group.campaigns.length > 0);
-    kpis.hidden = !hasWeek;
+    ovGrid.hidden = !hasWeek;
     showAdd.hidden = !hasWeek || !addRow.hidden;
     clearBlocks();
     if (!hasWeek) {
@@ -407,6 +575,7 @@ import Dashboard from "../layouts/Dashboard.astro";
         const hasCities = campaign.locations.length > 0;
         const block = document.createElement("tbody");
         block.className = hasCities ? "tbl__block tbl__block--split" : "tbl__block";
+        if (hasCities && !citiesExpanded(campaign.id)) block.classList.add("tbl__block--collapsed");
         const parts = [campaignRow(campaign)];
         for (const loc of campaign.locations) parts.push(cityRow(loc));
         parts.push(cityFormRow(campaign.id));
@@ -581,6 +750,12 @@ import Dashboard from "../layouts/Dashboard.astro";
   table.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
     if (target.closest("tfoot")) return;
+    const citiesToggle = target.closest<HTMLButtonElement>("[data-cities-toggle]");
+    if (citiesToggle) {
+      const id = Number(citiesToggle.dataset.citiesToggle);
+      setCitiesExpanded(id, !citiesExpanded(id));
+      return;
+    }
     const pill = target.closest<HTMLButtonElement>("[data-status]");
     if (pill) {
       void toggleStatus(pill);

@@ -3,9 +3,11 @@ interface Props {
   title: string;
   current: string;
   description?: string;
+  /** Set false when the page builds its own hero (e.g. Overview's personalized greeting). */
+  hero?: boolean;
 }
 
-const { title, current, description } = Astro.props;
+const { title, current, description, hero = true } = Astro.props;
 const nav = [
   { href: "/overview", id: "overview", label: "Overview" },
   { href: "/weeks", id: "weeks", label: "Weeks" },
@@ -37,7 +39,7 @@ const wide = current === "overview" || current === "monthly";
     <a class="skip" href="#content">Skip to content</a>
     <header class="topbar">
       <a class="brand" href="/overview">
-        <span class="brand__mark" aria-hidden="true">AB</span>
+        <span class="brand__mark" aria-hidden="true">tb.</span>
         <span class="brand__text">
           <span class="brand__name">Abbitomator</span>
           <span class="brand__sub">Stuart Mitchell reporting</span>
@@ -82,7 +84,7 @@ const wide = current === "overview" || current === "monthly";
     </header>
     <main class:list={["view", { "view--wide": wide }]} id="content">
       {
-        current !== "login" && (
+        current !== "login" && hero && (
           <div class="view__hero">
             <h1 class="view__title">{title}</h1>
             {description && <p class="view__desc">{description}</p>}
