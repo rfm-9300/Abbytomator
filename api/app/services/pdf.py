@@ -64,7 +64,7 @@ def _percent(value) -> str:
 
 
 def _status_phrase(status: str) -> str:
-    return "Live" if status == "live" else "Now off"
+    return "Live" if status == "live" else "Off"
 
 
 def _template_helpers(currency: str) -> dict:
@@ -78,8 +78,60 @@ def _template_helpers(currency: str) -> dict:
     }
 
 
+def _first_line(text: str | None) -> str | None:
+    return next(iter(_bullets(text)), None)
+
+
+def _rank_locations(locations: list[dict]) -> tuple[dict[int, str], int | None]:
+    """Assign each location a short status tag for the "Key takeaways" cards, and pick the
+    single best-performing (lowest CPP) location to highlight in the city table. This is a
+    ranking of the CPP figure already shown in the table, not an editorial judgment call —
+    with fewer than two comparable live locations there's nothing to rank, so everyone reads
+    as "Stable support" instead of guessing at a best/worst.
+    """
+    live = [loc for loc in locations if loc["status"] == "live" and loc.get("cpp") is not None]
+    best_id = worst_id = None
+    if len(live) > 1:
+        best_id = min(live, key=lambda loc: loc["cpp"])["id"]
+        worst_id = max(live, key=lambda loc: loc["cpp"])["id"]
+    tags: dict[int, str] = {}
+    for loc in locations:
+        if loc["status"] != "live":
+            tags[loc["id"]] = "Off"
+        elif loc["id"] == best_id:
+            tags[loc["id"]] = "Best performer"
+        elif loc["id"] == worst_id:
+            tags[loc["id"]] = "Needs optimisation"
+        else:
+            tags[loc["id"]] = "Stable support"
+    return tags, best_id
+
+
+def _augment_overview_for_pdf(overview: dict) -> dict:
+    """Adds the fields the card-based weekly template needs on top of what
+    queries.overview_for_week returns: a flat campaign list for the Overview page, one-line
+    summaries pulled from the existing note/performance_summary text, and the per-city
+    ranking used by the city table and "Key takeaways" cards."""
+    all_campaigns: list[dict] = []
+    for group in overview["groups"]:
+        for campaign in group["campaigns"]:
+            all_campaigns.append(campaign)
+            campaign["card_summary"] = _first_line(campaign["performance_summary"])
+            campaign["one_liner"] = _first_line(campaign["note"])
+            if campaign["locations"]:
+                tags, best_id = _rank_locations(campaign["locations"])
+                for loc in campaign["locations"]:
+                    loc["takeaway_tag"] = tags[loc["id"]]
+                campaign["best_location_id"] = best_id
+            else:
+                campaign["best_location_id"] = None
+    overview["all_campaigns"] = all_campaigns
+    return overview
+
+
 def render_weekly_html(overview: dict, client_name: str, currency: str) -> str:
     template = _env().get_template("weekly.html")
+    overview = _augment_overview_for_pdf(overview)
     return template.render(
         overview=overview,
         client_name=client_name,

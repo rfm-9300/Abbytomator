@@ -25,7 +25,7 @@ def _client(db: Session) -> Client:
     return client
 
 
-def test_weekly_html_is_punchline_letter() -> None:
+def test_weekly_html_is_bots_lab_report() -> None:
     db = _session()
     client = _client(db)
     prior = Week(client_id=client.id, period_end=date(2026, 8, 3), updated_until="3/8")
@@ -109,29 +109,28 @@ def test_weekly_html_is_punchline_letter() -> None:
     db.flush()
 
     html = render_weekly_html(overview_for_week(db, week), client.name, client.currency)
-    assert "Source Serif 4" in html
-    assert "Public Sans" in html
-    assert "fonts/PublicSans-Regular.ttf" in html
-    assert "fonts/SourceSerif4-SemiBold.ttf" in html
-    assert "Meta Ads Reporting" in html
-    assert "Account Manager: Abby" in html
+    assert "Space Grotesk" in html
+    assert "Manrope" in html
+    assert "fonts/Manrope-Regular.ttf" in html
+    assert "fonts/SpaceGrotesk-SemiBold.ttf" in html
+    assert "Meta Ads Weekly Report" in html
+    assert "Account manager: Abby" in html
     assert "Updated to 10/8" in html
     assert "Overview" in html
     assert "On the Road" in html
     assert "Edinburgh Shows" in html
     assert "Dundee is the only city still live." in html
-    assert "● Live" in html
-    assert "Next steps" in html
+    assert "Next moves" in html
     assert "Monitor Dundee as the show date nears." in html
     assert "3/8" in html
-    assert "Performance summary" not in html  # single-line summaries render as prose, no label
+    assert "Performance notes" not in html  # single-line summaries surface as the campaign card summary, no extra card
     assert "Ticket sales across the tour continue to climb." in html
     assert "CPC and CTR holding steady at scale." in html
     assert "Dundee remains the top-performing location by volume." in html
     assert "Aberdeen closed out with a healthy final tally." in html
-    assert "punchline-logo.png" in html
-    assert "Weekly report" not in html
-    assert "The Bots Lab" not in html
+    assert "Powered by" in html
+    assert "tb." in html
+    assert "punchline-logo.png" not in html
 
 
 @pytest.mark.skipif(HTML is None, reason="WeasyPrint not installed")
