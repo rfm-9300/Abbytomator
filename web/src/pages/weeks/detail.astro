@@ -26,6 +26,7 @@ import Dashboard from "../../layouts/Dashboard.astro";
         <h2 class="panel__title" id="week-title">Week</h2>
         <div class="row row--wrap">
           <button class="btn btn--ghost btn--sm" id="generate-notes" type="button">Generate comments</button>
+          <button class="btn btn--ghost btn--sm" id="send-email" type="button">Send email</button>
           <button class="btn btn--primary btn--sm" id="download-pdf" type="button">Download PDF</button>
         </div>
       </div>
@@ -35,6 +36,7 @@ import Dashboard from "../../layouts/Dashboard.astro";
           <input class="inp" id="updated_until" name="updated_until" placeholder="10/8" />
         </div>
         <p class="hint">Numbers come from Overview. Generate comments fills the letter in Abby’s voice. Edit anything, then save.</p>
+        <p class="hint" id="emailed-status" hidden></p>
         <div id="notes-fields" class="stack"></div>
         <button class="btn btn--primary" type="submit">Save notes</button>
       </form>
@@ -54,6 +56,8 @@ import Dashboard from "../../layouts/Dashboard.astro";
   const toOverview = document.getElementById("to-overview") as HTMLAnchorElement;
   const downloadBtn = document.getElementById("download-pdf") as HTMLButtonElement;
   const generateBtn = document.getElementById("generate-notes") as HTMLButtonElement;
+  const sendEmailBtn = document.getElementById("send-email") as HTMLButtonElement;
+  const emailedStatus = document.getElementById("emailed-status") as HTMLElement;
   const notesFields = document.getElementById("notes-fields") as HTMLElement;
   const weekSelect = document.getElementById("week-select") as HTMLSelectElement;
   const weekPrev = document.getElementById("week-prev") as HTMLButtonElement;
@@ -114,6 +118,16 @@ import Dashboard from "../../layouts/Dashboard.astro";
     notesFields.innerHTML = parts.join("");
   }
 
+  function showEmailedStatus(week: Week) {
+    if (!week.emailed_at) {
+      emailedStatus.hidden = true;
+      return;
+    }
+    const sent = new Date(week.emailed_at);
+    emailedStatus.hidden = false;
+    emailedStatus.textContent = `Emailed on ${sent.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.`;
+  }
+
   function updateStepper() {
     const index = weekSelect.selectedIndex;
     weekPrev.disabled = index < 0 || index >= weekSelect.options.length - 1;
@@ -128,6 +142,7 @@ import Dashboard from "../../layouts/Dashboard.astro";
     toOverview.href = `/overview?week=${week.id}`;
     weekSelect.value = String(week.id);
     updateStepper();
+    showEmailedStatus(week);
     renderNotes(overview);
   }
 
@@ -188,6 +203,23 @@ import Dashboard from "../../layouts/Dashboard.astro";
   downloadBtn.addEventListener("click", async () => {
     const week = await api<Week>(`/api/weeks/${currentId}`);
     await download(`/api/weeks/${currentId}/pdf`, `weekly-stuart-mitchell-${week.period_end}.pdf`);
+  });
+
+  sendEmailBtn.addEventListener("click", async () => {
+    sendEmailBtn.disabled = true;
+    sendEmailBtn.textContent = "Sending…";
+    try {
+      const result = await api<{ sent: boolean; to: string[]; week: Week }>(`/api/weeks/${currentId}/send-email`, {
+        method: "POST",
+      });
+      showEmailedStatus(result.week);
+      flash(ok, `Emailed to ${result.to.join(", ")}.`);
+    } catch (err) {
+      flash(error, String(err));
+    } finally {
+      sendEmailBtn.disabled = false;
+      sendEmailBtn.textContent = "Send email";
+    }
   });
 
   weekSelect.addEventListener("change", () => selectWeek(Number(weekSelect.value)));

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ client_name }} | Meta Ads Reporting</title>
+  <style>
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-Bold.ttf") format("truetype");
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-Italic.ttf") format("truetype");
+      font-weight: 400;
+      font-style: italic;
+    }
+    @font-face {
+      font-family: "Punchline Sans";
+      src: url("fonts/LiberationSans-BoldItalic.ttf") format("truetype");
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    /* Matches the client's original Google Docs report: a thin black frame around the
+       body copy on every page, with the Punchline logo repeating above it in the page's
+       top margin. Both are page-level (@page border + a running header element), not
+       something drawn per section, so they repeat automatically on every page WeasyPrint
+       paginates to — the same mechanism the "modern" template uses for its footer. */
+    @page {
+      size: letter;
+      margin: 1.2in 0.48in 0.55in 0.49in;
+      border: 1.25pt solid #000;
+      @top-left { content: element(logohdr); }
+    }
+
+    * { box-sizing: border-box; }
+
+    .logohdr { position: running(logohdr); }
+    .logohdr img { display: block; width: 1.3in; margin: 0 0 0.35in 0.49in; }
+
+    body {
+      font-family: "Punchline Sans", Arial, Helvetica, sans-serif;
+      color: #000;
+      font-size: 11pt;
+      line-height: 1.15;
+      margin: 0;
+    }
+
+    /* Everything except the title/meta table (which spans edge-to-edge like the
+       original) is inset from the page frame — the original report never lets body
+       copy touch the border. */
+    .content { padding: 0 0.12in; }
+
+    /* Title + Client/Date/Account manager row: one bordered table so the dividing
+       lines are shared, exactly like the original report's layout. */
+    table.frame { width: 100%; border-collapse: collapse; border: 1.25pt solid #000; margin-bottom: 14pt; }
+    table.frame td { border: 1.25pt solid #000; padding: 7px 10px; vertical-align: middle; }
+    .titlebar-cell { text-align: center; font-weight: 700; font-size: 22pt; }
+    .meta-cell { width: 33.33%; font-size: 12pt; }
+
+    h2.section { font-size: 12pt; font-weight: 700; margin: 14pt 0 6pt; break-after: avoid; }
+
+    /* The campaign banner is a highlighter mark around just the text, not a bordered
+       block — matching the original report, which used Google Docs' text-highlight. */
+    p.banner { font-size: 13pt; font-weight: 700; margin: 16pt 0 8pt; break-after: avoid; }
+    p.banner mark { background: #ffff00; color: #000; padding: 1px 4px; }
+
+    p { margin: 0 0 10pt; }
+    p.note-line { margin: 0 0 10pt; }
+
+    ul.bullets { margin: 4pt 0 10pt; padding-left: 1.6em; }
+    ul.bullets li { margin: 2pt 0; }
+
+    table.data { width: 100%; border-collapse: collapse; margin: 0 0 14pt; font-size: 9.5pt; }
+    table.data th, table.data td { border: 1pt solid #000; padding: 4px 6px; vertical-align: top; }
+    table.data th { background: #f2f2f2; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.02em; text-align: left; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .live { color: #0a7a3e; font-weight: 700; }
+    .off { color: #b42318; font-weight: 700; }
+
+    .campaign { break-inside: avoid-page; }
+
+    .city-heading { font-size: 11pt; margin: 12pt 0 4pt; }
+    .city-heading .name { font-weight: 700; }
+    .city-heading .status { font-style: italic; }
+    ul.bullets.city-kpis { margin: 0 0 4pt; }
+    ul.bullets.city-kpis li { white-space: nowrap; }
+    p.city-note { margin: 0 0 10pt 1.6em; }
+  </style>
+</head>
+<body>
+
+<div class="logohdr"><img src="punchline-logo-crop.png" alt="Punchline Promotions"></div>
+
+<table class="frame">
+  <tr><td class="titlebar-cell" colspan="3">{{ client_name|upper }} | META ADS REPORTING</td></tr>
+  <tr>
+    <td class="meta-cell"><strong>Client:</strong> {{ client_name }}</td>
+    <td class="meta-cell"><strong>Date:</strong> Updated to {{ overview.week.label }}</td>
+    <td class="meta-cell"><strong>Account Manager:</strong> {{ overview.account_manager }}</td>
+  </tr>
+</table>
+
+<div class="content">
+<h2 class="section">Overview of all Campaigns:</h2>
+<table class="data">
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Campaign</th>
+      <th>Status</th>
+      <th class="num">Amount spent</th>
+      <th class="num">Clicks</th>
+      <th class="num">CPC</th>
+      <th class="num">CTR</th>
+      <th class="num">Tix sold</th>
+      <th class="num">CPP</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for group in overview.groups %}
+    {% for campaign in group.campaigns %}
+    <tr>
+      <td>{{ campaign.platform }}</td>
+      <td>{{ campaign.name }}</td>
+      <td class="{{ campaign.status }}">{{ campaign.status|capitalize }}</td>
+      <td class="num">{{ money(campaign.amount_spent) }}</td>
+      <td class="num">{{ whole(campaign.clicks) }}</td>
+      <td class="num">{{ money_or_dash(campaign.cpc) }}</td>
+      <td class="num">{{ percent(campaign.ctr) }}</td>
+      <td class="num">{{ whole(campaign.tix_sold) }}</td>
+      <td class="num">{{ money_or_dash(campaign.cpp) }}</td>
+    </tr>
+    {% endfor %}
+    {% endfor %}
+    {% if not overview.groups %}
+    <tr><td colspan="9">No campaign activity to report this week.</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+
+{% if not overview.has_structured_notes and overview.week.notes %}
+<p>{{ overview.week.notes }}</p>
+{% endif %}
+
+{% macro bullets_or_paragraph(text) %}
+{% set lines = bullets(text) %}
+{% if lines|length > 1 %}
+<ul class="bullets">
+  {% for line in lines %}<li>{{ line }}</li>{% endfor %}
+</ul>
+{% elif lines %}
+<p>{{ lines[0] }}</p>
+{% endif %}
+{% endmacro %}
+
+{% for group in overview.groups %}
+{% for campaign in group.campaigns %}
+<div class="campaign">
+  <p class="banner"><mark>{{ campaign.name }} Performance Update ({{ overview.week.label }})</mark></p>
+  {% if campaign.note %}<p class="note-line"><strong>Note:</strong> {{ campaign.note }}</p>{% endif %}
+
+  {% if campaign.locations %}
+  <table class="data">
+    <thead>
+      <tr>
+        <th>City</th>
+        <th>Status</th>
+        <th class="num">Ad spend</th>
+        {% if campaign.show_city_clicks %}
+        <th class="num">Clicks</th>
+        <th class="num">CPC</th>
+        {% endif %}
+        {% for col in overview.history %}
+        <th class="num">{{ col.label }}</th>
+        {% endfor %}
+        <th class="num">Total tix</th>
+        <th class="num">CPP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for loc in campaign.locations %}
+      <tr>
+        <td>{{ loc.name }}</td>
+        <td class="{{ loc.status }}">{{ status_phrase(loc.status) }}</td>
+        <td class="num">{% if loc.amount_spent is not none %}{{ money(loc.amount_spent) }}{% else %}-{% endif %}</td>
+        {% if campaign.show_city_clicks %}
+        <td class="num">{% if loc.clicks %}{{ whole(loc.clicks) }}{% else %}-{% endif %}</td>
+        <td class="num">{{ money_or_dash(loc.cpc) }}</td>
+        {% endif %}
+        {% for tix in loc.tix_history %}
+        <td class="num">{% if tix is not none %}{{ whole(tix) }}{% endif %}</td>
+        {% endfor %}
+        <td class="num">{{ whole(loc.tix_sold) }}</td>
+        <td class="num">{{ money_or_dash(loc.cpp) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="section">Overall Totals:</h2>
+  <ul class="bullets">
+    <li>Ad Spend: {{ money(campaign.amount_spent) }}</li>
+    <li>Link Clicks: {{ whole(campaign.clicks) }}</li>
+    <li>CPC: {{ money_or_dash(campaign.cpc) }}</li>
+    <li>Total Tickets Sold: {{ whole(campaign.tix_sold) }}</li>
+    <li>CPP: {{ money_or_dash(campaign.cpp) }}</li>
+  </ul>
+
+  {{ bullets_or_paragraph(campaign.performance_summary) }}
+
+  {% for loc in campaign.locations %}
+  <p class="city-heading"><span class="name">{{ loc.name }}</span> — <span class="status">{{ status_phrase(loc.status) }}</span></p>
+  <ul class="bullets city-kpis">
+    <li>Ad Spend: {% if loc.amount_spent is not none %}{{ money(loc.amount_spent) }}{% else %}-{% endif %} | Clicks: {{ whole(loc.clicks) }} | CPC: {{ money_or_dash(loc.cpc) }}</li>
+    <li>Tickets Sold: {{ whole(loc.tix_sold) }}{% if loc.cpp is not none %} | CPP: {{ money(loc.cpp) }}{% endif %}</li>
+  </ul>
+  {% if loc.note %}<p class="city-note">{{ loc.note }}</p>{% endif %}
+  {% endfor %}
+
+  {% else %}
+  <ul class="bullets">
+    <li>Ad Spend: {{ money(campaign.amount_spent) }}</li>
+    <li>Clicks: {{ whole(campaign.clicks) }}</li>
+    <li>CPC: {{ money_or_dash(campaign.cpc) }}</li>
+    <li>CTR: {{ percent(campaign.ctr) }}</li>
+    <li>Tickets Sold: {{ whole(campaign.tix_sold) }}</li>
+    <li>CPP: {{ money_or_dash(campaign.cpp) }}</li>
+  </ul>
+  {% if bullets(campaign.performance_summary) %}
+  <h2 class="section">Performance Summary:</h2>
+  {{ bullets_or_paragraph(campaign.performance_summary) }}
+  {% endif %}
+  {% endif %}
+
+  {% if bullets(campaign.next_steps) %}
+  <h2 class="section">Next Steps:</h2>
+  {{ bullets_or_paragraph(campaign.next_steps) }}
+  {% endif %}
+</div>
+{% endfor %}
+{% endfor %}
+</div>
+
+</body>
+</html>

@@ -44,6 +44,7 @@ def week_payload(week: Week) -> dict:
         "updated_until": week.updated_until,
         "label": week_label(week),
         "notes": week.notes or "",
+        "emailed_at": week.emailed_at.isoformat() if week.emailed_at else None,
     }
 
 

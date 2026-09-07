@@ -81,7 +81,14 @@ Use [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) as the source of truth. Pushe
 - `make seed` — fictional Stuart Mitchell demo data if the DB is empty
 - Tester page `/tester` — load / replace / clear the demo set (weeks, campaigns, cities, letter notes) in the same database
 
-Copy `.env.example` to `.env`. Dashboard login is HTTP Basic (`DASHBOARD_USER` / `DASHBOARD_PASSWORD`). Set `OPENROUTER_API_KEY` to draft weekly letter comments (same OpenRouter account as the other bots).
+Copy `.env.example` to `.env`. Dashboard login is HTTP Basic (`DASHBOARD_USER` / `DASHBOARD_PASSWORD`) — the only credential still in `.env`, since it gates access to Settings itself. Everything else config-shaped lives on the `Client` row, edited from the Settings page:
+
+- **OpenRouter** (`Client.openrouter_api_key` / `openrouter_model`) — used to draft weekly letter comments (`app/services/comments.py`).
+- **Gmail sender** (`Client.gmail_address` / `gmail_app_password`, an App Password from an account with 2-Step Verification) — sends the weekly PDF via Gmail SMTP two ways: the "Send email" button on a week (`app/services/email.py`), or an in-process weekly scheduler (`app/services/scheduler.py`, started in `main.py`'s lifespan — no cron/APScheduler dependency) gated by the "Send automatically every week" toggle.
+- **Auto-send schedule** (`Client.report_email_weekday/hour/minute/tz`) and **recipients** (`Client.report_email`) — the scheduler re-reads these from the DB every wakeup, so a change in Settings takes effect without a restart. `Week.emailed_at` guards the automatic path so a given week is only ever auto-sent once; the manual button always resends and overwrites it.
+- **PDF design** (`Client.pdf_template`, `"modern"` or `"classic"`) — which weekly PDF layout `weekly_pdf_bytes` renders (`app/services/pdf.py`).
+
+`api/app/db.py`'s `migrate_schema` backfilled all of the above once from the old `.env` vars the first time each column was added, so an existing deployment's config carried over automatically — those vars are otherwise dead now and can be deleted from `.env`.
 
 PDF export uses WeasyPrint. On macOS install system libs once: `brew install pango`. The Makefile and API set `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib`.
 

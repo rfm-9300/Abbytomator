@@ -19,6 +19,25 @@ class Client(Base):
     slug: Mapped[str] = mapped_column(String(80), unique=True)
     currency: Mapped[str] = mapped_column(String(8), default="GBP")
     date_format: Mapped[str] = mapped_column(String(32), default="d/m/Y")
+    report_email: Mapped[str] = mapped_column(String(500), default="")
+    auto_email_enabled: Mapped[bool] = mapped_column(default=False)
+    pdf_template: Mapped[str] = mapped_column(String(16), default="modern")
+
+    # Gmail SMTP sender for the weekly report email — an App Password, not the
+    # account's normal password (requires 2-Step Verification; generate one at
+    # myaccount.google.com/apppasswords). Both empty means email sending is unconfigured.
+    gmail_address: Mapped[str] = mapped_column(String(320), default="")
+    gmail_app_password: Mapped[str] = mapped_column(String(64), default="")
+
+    # When the auto-send job checks for a report to email. Weekday is 0=Monday..6=Sunday.
+    report_email_weekday: Mapped[int] = mapped_column(default=0)
+    report_email_hour: Mapped[int] = mapped_column(default=8)
+    report_email_minute: Mapped[int] = mapped_column(default=0)
+    report_email_tz: Mapped[str] = mapped_column(String(64), default="Europe/London")
+
+    # OpenRouter account used to draft weekly letter comments.
+    openrouter_api_key: Mapped[str] = mapped_column(String(200), default="")
+    openrouter_model: Mapped[str] = mapped_column(String(120), default="openai/gpt-4o")
 
     campaigns: Mapped[list[Campaign]] = relationship(back_populates="client")
     weeks: Mapped[list[Week]] = relationship(back_populates="client")
@@ -66,6 +85,7 @@ class Week(Base):
     updated_until: Mapped[str | None] = mapped_column(String(80), nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    emailed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     client: Mapped[Client] = relationship(back_populates="weeks")
     campaign_metrics: Mapped[list[WeekCampaignMetric]] = relationship(

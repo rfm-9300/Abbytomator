@@ -6,7 +6,6 @@ import re
 import httpx
 from fastapi import HTTPException
 
-from app.config import openrouter_api_key, openrouter_model
 from app.metrics import money_str, percent_str
 
 SYSTEM_PROMPT = """You write Abby’s weekly Meta ads client letter for Punchline Promotions / Stuart Mitchell.
@@ -105,19 +104,19 @@ def letter_snapshot(overview: dict, currency: str) -> dict:
     }
 
 
-def generate_letter_comments(overview: dict, currency: str = "GBP") -> dict:
-    key = openrouter_api_key()
+def generate_letter_comments(overview: dict, currency: str = "GBP", *, api_key: str = "", model: str = "openai/gpt-4o") -> dict:
+    key = (api_key or "").strip()
     if not key:
         raise HTTPException(
             503,
-            "Set OPENROUTER_API_KEY in .env to generate comments.",
+            "Add an OpenRouter API key under Settings to generate comments.",
         )
     snapshot = letter_snapshot(overview, currency)
     if not snapshot["campaigns"]:
         raise HTTPException(400, "Import a Meta report before generating comments.")
 
     payload = {
-        "model": openrouter_model(),
+        "model": model or "openai/gpt-4o",
         "temperature": 0.4,
         "response_format": {"type": "json_object"},
         "messages": [

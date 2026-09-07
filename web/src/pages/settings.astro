@@ -15,8 +15,94 @@ import Dashboard from "../layouts/Dashboard.astro";
           <label class="lbl" for="currency">Currency</label>
           <input class="inp" id="currency" name="currency" maxlength="3" required />
         </div>
+        <div class="form__row">
+          <label class="lbl" for="pdf_template">PDF design</label>
+          <select class="sel" id="pdf_template" name="pdf_template">
+            <option value="modern">Modern (Bots Lab card layout)</option>
+            <option value="classic">Classic (Punchline table layout)</option>
+          </select>
+          <p class="hint">Which layout "Download PDF" and "Send email" use for the weekly report.</p>
+        </div>
       </div>
       <p class="banner banner--ok" id="saved" hidden>Saved.</p>
+      <button class="btn btn--primary" type="submit">Save</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">Weekly report email</h2></div>
+    <form class="form panel__body" id="email-form">
+      <div class="form__row">
+        <label class="lbl" for="report_email">Send to</label>
+        <input class="inp" id="report_email" name="report_email" placeholder="client@example.com, abby@thebotslab.com" />
+        <p class="hint">Comma-separate multiple addresses. Used by both the "Send email" button on a week and the automatic weekly send below.</p>
+      </div>
+      <div class="form__row">
+        <label class="check">
+          <input type="checkbox" id="auto_email_enabled" name="auto_email_enabled" />
+          <span>Send automatically every week</span>
+        </label>
+        <p class="hint">Emails the latest week's PDF once, on the schedule below. Each week only ever goes out once automatically — reviewing and saving the letter notes first is still on you.</p>
+      </div>
+      <div class="form__grid">
+        <div class="form__row">
+          <label class="lbl" for="report_email_weekday">Send on</label>
+          <select class="sel" id="report_email_weekday" name="report_email_weekday">
+            <option value="0">Monday</option>
+            <option value="1">Tuesday</option>
+            <option value="2">Wednesday</option>
+            <option value="3">Thursday</option>
+            <option value="4">Friday</option>
+            <option value="5">Saturday</option>
+            <option value="6">Sunday</option>
+          </select>
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="report_email_hour">Hour</label>
+          <input class="inp" id="report_email_hour" name="report_email_hour" type="number" min="0" max="23" required />
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="report_email_minute">Minute</label>
+          <input class="inp" id="report_email_minute" name="report_email_minute" type="number" min="0" max="59" required />
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="report_email_tz">Timezone</label>
+          <input class="inp" id="report_email_tz" name="report_email_tz" placeholder="Europe/London" required />
+        </div>
+      </div>
+      <p class="hint">Hour/minute are in the timezone above (an IANA name, e.g. Europe/London or America/New_York).</p>
+
+      <div class="form__grid">
+        <div class="form__row">
+          <label class="lbl" for="gmail_address">Gmail address</label>
+          <input class="inp" id="gmail_address" name="gmail_address" placeholder="abby@gmail.com" autocomplete="off" />
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="gmail_app_password">Gmail App Password</label>
+          <input class="inp" id="gmail_app_password" name="gmail_app_password" type="password" placeholder="16-character app password" autocomplete="off" />
+          <p class="hint">Not the account's normal password. Requires 2-Step Verification on that Gmail account — generate one at myaccount.google.com/apppasswords.</p>
+        </div>
+      </div>
+      <p class="banner banner--ok" id="email-saved" hidden>Saved.</p>
+      <button class="btn btn--primary" type="submit">Save</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2 class="panel__title">AI comments (OpenRouter)</h2></div>
+    <form class="form panel__body" id="ai-form">
+      <div class="form__grid">
+        <div class="form__row">
+          <label class="lbl" for="openrouter_api_key">API key</label>
+          <input class="inp" id="openrouter_api_key" name="openrouter_api_key" type="password" placeholder="sk-or-v1-…" autocomplete="off" />
+        </div>
+        <div class="form__row">
+          <label class="lbl" for="openrouter_model">Model</label>
+          <input class="inp" id="openrouter_model" name="openrouter_model" placeholder="openai/gpt-4o" />
+        </div>
+      </div>
+      <p class="hint">Used by "Generate comments" on a week to draft the letter in Abby's voice.</p>
+      <p class="banner banner--ok" id="ai-saved" hidden>Saved.</p>
       <button class="btn btn--primary" type="submit">Save</button>
     </form>
   </section>
@@ -25,25 +111,96 @@ import Dashboard from "../layouts/Dashboard.astro";
 <script>
   import { api } from "../lib/api";
 
+  type Client = {
+    name: string;
+    currency: string;
+    report_email: string;
+    auto_email_enabled: boolean;
+    pdf_template: string;
+    gmail_address: string;
+    gmail_app_password: string;
+    report_email_weekday: number;
+    report_email_hour: number;
+    report_email_minute: number;
+    report_email_tz: string;
+    openrouter_api_key: string;
+    openrouter_model: string;
+  };
+
   const form = document.getElementById("settings-form") as HTMLFormElement;
   const saved = document.getElementById("saved") as HTMLElement;
+  const emailForm = document.getElementById("email-form") as HTMLFormElement;
+  const emailSaved = document.getElementById("email-saved") as HTMLElement;
+  const aiForm = document.getElementById("ai-form") as HTMLFormElement;
+  const aiSaved = document.getElementById("ai-saved") as HTMLElement;
+
+  function field(f: HTMLFormElement, name: string) {
+    return f.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement;
+  }
 
   async function load() {
-    const client = await api<{ name: string; currency: string }>("/api/client");
-    (form.elements.namedItem("name") as HTMLInputElement).value = client.name;
-    (form.elements.namedItem("currency") as HTMLInputElement).value = client.currency;
+    const client = await api<Client>("/api/client");
+    (field(form, "name") as HTMLInputElement).value = client.name;
+    (field(form, "currency") as HTMLInputElement).value = client.currency;
+    (field(form, "pdf_template") as HTMLSelectElement).value = client.pdf_template;
+
+    (field(emailForm, "report_email") as HTMLInputElement).value = client.report_email;
+    (field(emailForm, "auto_email_enabled") as HTMLInputElement).checked = client.auto_email_enabled;
+    (field(emailForm, "report_email_weekday") as HTMLSelectElement).value = String(client.report_email_weekday);
+    (field(emailForm, "report_email_hour") as HTMLInputElement).value = String(client.report_email_hour);
+    (field(emailForm, "report_email_minute") as HTMLInputElement).value = String(client.report_email_minute);
+    (field(emailForm, "report_email_tz") as HTMLInputElement).value = client.report_email_tz;
+    (field(emailForm, "gmail_address") as HTMLInputElement).value = client.gmail_address;
+    (field(emailForm, "gmail_app_password") as HTMLInputElement).value = client.gmail_app_password;
+
+    (field(aiForm, "openrouter_api_key") as HTMLInputElement).value = client.openrouter_api_key;
+    (field(aiForm, "openrouter_model") as HTMLInputElement).value = client.openrouter_model;
   }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    saved.hidden = true;
     await api("/api/client", {
       method: "PATCH",
       body: JSON.stringify({
-        name: (form.elements.namedItem("name") as HTMLInputElement).value,
-        currency: (form.elements.namedItem("currency") as HTMLInputElement).value,
+        name: (field(form, "name") as HTMLInputElement).value,
+        currency: (field(form, "currency") as HTMLInputElement).value,
+        pdf_template: (field(form, "pdf_template") as HTMLSelectElement).value,
       }),
     });
     saved.hidden = false;
+  });
+
+  emailForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    emailSaved.hidden = true;
+    await api("/api/client", {
+      method: "PATCH",
+      body: JSON.stringify({
+        report_email: (field(emailForm, "report_email") as HTMLInputElement).value,
+        auto_email_enabled: (field(emailForm, "auto_email_enabled") as HTMLInputElement).checked,
+        report_email_weekday: Number((field(emailForm, "report_email_weekday") as HTMLSelectElement).value),
+        report_email_hour: Number((field(emailForm, "report_email_hour") as HTMLInputElement).value),
+        report_email_minute: Number((field(emailForm, "report_email_minute") as HTMLInputElement).value),
+        report_email_tz: (field(emailForm, "report_email_tz") as HTMLInputElement).value,
+        gmail_address: (field(emailForm, "gmail_address") as HTMLInputElement).value,
+        gmail_app_password: (field(emailForm, "gmail_app_password") as HTMLInputElement).value,
+      }),
+    });
+    emailSaved.hidden = false;
+  });
+
+  aiForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    aiSaved.hidden = true;
+    await api("/api/client", {
+      method: "PATCH",
+      body: JSON.stringify({
+        openrouter_api_key: (field(aiForm, "openrouter_api_key") as HTMLInputElement).value,
+        openrouter_model: (field(aiForm, "openrouter_model") as HTMLInputElement).value,
+      }),
+    });
+    aiSaved.hidden = false;
   });
 
   load();

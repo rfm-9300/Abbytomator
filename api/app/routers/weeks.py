@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -15,6 +15,7 @@ from app.db import get_db
 from app.models import Campaign, Location, Week, WeekCampaignMetric, WeekLocationMetric
 from app.services.comments import generate_letter_comments
 from app.services.csv_source import CsvInsightsSource
+from app.services.email import EmailNotConfigured, EmailSendError, send_weekly_report_email
 from app.services.import_week import import_from_source
 from app.services.pdf import monthly_pdf_bytes, weekly_pdf_bytes
 from app.services.queries import monthly_rollup, overview_for_week, require_client, week_payload
@@ -205,7 +206,9 @@ def generate_week_notes(week_id: int, db: Session = Depends(get_db)) -> dict:
     week = _week_or_404(db, week_id)
     client = require_client(db, CLIENT_SLUG)
     overview = overview_for_week(db, week)
-    draft = generate_letter_comments(overview, client.currency)
+    draft = generate_letter_comments(
+        overview, client.currency, api_key=client.openrouter_api_key, model=client.openrouter_model
+    )
     body = WeekNotesPatch(campaigns=draft["campaigns"], locations=draft["locations"])
     return _apply_letter_notes(db, week, body)
 
@@ -365,6 +368,24 @@ def weekly_pdf(week_id: int, db: Session = Depends(get_db)) -> Response:
         raise HTTPException(503, str(exc)) from exc
     filename = f"weekly-{client.slug}-{week.period_end.isoformat()}.pdf"
     return Response(content=data, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@router.post("/weeks/{week_id}/send-email")
+def send_week_email(week_id: int, db: Session = Depends(get_db)) -> dict:
+    week = _week_or_404(db, week_id)
+    client = require_client(db, CLIENT_SLUG)
+    try:
+        data = weekly_pdf_bytes(db, week, client)
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    try:
+        recipients = send_weekly_report_email(client, week, data)
+    except EmailNotConfigured as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except EmailSendError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    week.emailed_at = datetime.utcnow()
+    return {"sent": True, "to": recipients, "week": week_payload(week)}
 
 
 @router.get("/monthly")

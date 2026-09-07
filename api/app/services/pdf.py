@@ -15,6 +15,13 @@ except Exception:  # pragma: no cover - optional system libs
     HTML = None
 
 
+# Weekly PDF designs a client can pick between in Settings. "modern" is the Bots
+# Lab-branded card layout; "classic" is the plain Punchline Promotions table layout
+# some clients are used to receiving and want kept exactly as-is.
+PDF_TEMPLATES = {"modern": "weekly.html", "classic": "weekly-classic.html"}
+DEFAULT_PDF_TEMPLATE = "modern"
+
+
 def _env() -> Environment:
     return Environment(
         loader=FileSystemLoader(str(TEMPLATE_DIR)),
@@ -129,8 +136,9 @@ def _augment_overview_for_pdf(overview: dict) -> dict:
     return overview
 
 
-def render_weekly_html(overview: dict, client_name: str, currency: str) -> str:
-    template = _env().get_template("weekly.html")
+def render_weekly_html(overview: dict, client_name: str, currency: str, pdf_template: str = DEFAULT_PDF_TEMPLATE) -> str:
+    template_file = PDF_TEMPLATES.get(pdf_template, PDF_TEMPLATES[DEFAULT_PDF_TEMPLATE])
+    template = _env().get_template(template_file)
     overview = _augment_overview_for_pdf(overview)
     return template.render(
         overview=overview,
@@ -155,7 +163,8 @@ def render_monthly_html(rollup: dict, client_name: str, currency: str) -> str:
 def weekly_pdf_bytes(db, week, client) -> bytes:
     _require_weasyprint()
     overview = overview_for_week(db, week)
-    html = render_weekly_html(overview, client.name, client.currency)
+    pdf_template = getattr(client, "pdf_template", None) or DEFAULT_PDF_TEMPLATE
+    html = render_weekly_html(overview, client.name, client.currency, pdf_template)
     return HTML(string=html, base_url=str(TEMPLATE_DIR)).write_pdf()
 
 

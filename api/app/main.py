@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,6 +14,7 @@ from app.routers import router as core_router
 from app.routers.tester import router as tester_router
 from app.routers.weeks import router as weeks_router
 from app.seed import seed_if_empty
+from app.services.scheduler import run_scheduler
 
 
 @asynccontextmanager
@@ -19,7 +23,15 @@ async def lifespan(_app: FastAPI):
     init_db()
     if SEED_IF_EMPTY:
         seed_if_empty()
-    yield
+    stop_event = asyncio.Event()
+    scheduler_task = asyncio.create_task(run_scheduler(stop_event))
+    try:
+        yield
+    finally:
+        stop_event.set()
+        scheduler_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await scheduler_task
 
 
 app = FastAPI(title="Abbitomator", lifespan=lifespan)

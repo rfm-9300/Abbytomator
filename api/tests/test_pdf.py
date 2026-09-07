@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import Base, Campaign, Client, Location, Week, WeekCampaignMetric, WeekLocationMetric
-from app.services.pdf import HTML, render_monthly_html, render_weekly_html
+from app.services.pdf import HTML, PDF_TEMPLATES, render_monthly_html, render_weekly_html
 from app.services.queries import monthly_rollup, overview_for_week
 
 
@@ -131,6 +131,67 @@ def test_weekly_html_is_bots_lab_report() -> None:
     assert "Powered by" in html
     assert "tb." in html
     assert "punchline-logo.png" not in html
+
+
+def test_weekly_html_classic_report() -> None:
+    """The "classic" design is the plain Punchline Promotions table layout some
+    clients are used to and asked to keep exactly as-is — a client-level choice,
+    not a replacement for the default "modern" Bots Lab layout above."""
+    db = _session()
+    client = _client(db)
+    week = Week(client_id=client.id, period_end=date(2026, 8, 10), updated_until="10/8")
+    db.add(week)
+    db.flush()
+    campaign = Campaign(client_id=client.id, name="[TA] ON THE ROAD", platform="META", status="live")
+    db.add(campaign)
+    db.flush()
+    dundee = Location(campaign_id=campaign.id, name="Dundee", status="live")
+    db.add(dundee)
+    db.flush()
+    db.add_all(
+        [
+            WeekCampaignMetric(
+                week_id=week.id,
+                campaign_id=campaign.id,
+                amount_spent=Decimal("3886.57"),
+                clicks=153063,
+                tix_sold=3087,
+                performance_summary="Ticket sales across the tour continue to climb.",
+                next_steps="Monitor Dundee as the show date nears.",
+            ),
+            WeekLocationMetric(
+                week_id=week.id, location_id=dundee.id, amount_spent=Decimal("765.57"), clicks=33783, tix_sold=809
+            ),
+        ]
+    )
+    db.flush()
+
+    html = render_weekly_html(overview_for_week(db, week), client.name, client.currency, "classic")
+    assert "punchline-logo-crop.png" in html
+    assert "STUART MITCHELL | META ADS REPORTING" in html
+    assert "Overview of all Campaigns:" in html
+    assert "[TA] ON THE ROAD Performance Update (10/8)" in html
+    assert "Overall Totals:" in html
+    assert "Ticket sales across the tour continue to climb." in html
+    assert "Monitor Dundee as the show date nears." in html
+    assert "Dundee" in html
+    assert "Meta Ads Weekly Report" not in html  # not the "modern" Bots Lab layout
+    assert "Powered by" not in html
+
+
+def test_render_weekly_html_unknown_template_falls_back_to_modern() -> None:
+    db = _session()
+    client = _client(db)
+    week = Week(client_id=client.id, period_end=date(2026, 8, 10), updated_until="10/8")
+    db.add(week)
+    db.flush()
+
+    html = render_weekly_html(overview_for_week(db, week), client.name, client.currency, "not-a-real-template")
+    assert "Meta Ads Weekly Report" in html
+
+
+def test_pdf_templates_registry() -> None:
+    assert PDF_TEMPLATES == {"modern": "weekly.html", "classic": "weekly-classic.html"}
 
 
 @pytest.mark.skipif(HTML is None, reason="WeasyPrint not installed")

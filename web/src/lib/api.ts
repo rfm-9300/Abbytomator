@@ -98,6 +98,7 @@ export type Week = {
   updated_until: string | null;
   label?: string;
   notes: string;
+  emailed_at?: string | null;
 };
 
 export type CampaignNotes = Campaign & {

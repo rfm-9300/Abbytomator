@@ -39,23 +39,6 @@ def dashboard_credentials() -> tuple[str, str]:
     return user, password
 
 
-def _env_file_value(name: str) -> str:
-    path = ROOT / ".env"
-    if path.is_file():
-        for line in path.read_text().splitlines():
-            if line.startswith(f"{name}="):
-                return line.split("=", 1)[1].strip().strip("'").strip('"')
-    return os.environ.get(name, "").strip()
-
-
-def openrouter_api_key() -> str:
-    return _env_file_value("OPENROUTER_API_KEY")
-
-
-def openrouter_model() -> str:
-    return _env_file_value("OPENROUTER_MODEL") or "openai/gpt-4o"
-
-
 def ensure_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
